@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.1.0. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.2.0. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -71,6 +71,20 @@
     const r = selected()?.rounds[activeRound];
     activeArrow = r?.[0] === null ? 0 : r?.[1] === null ? 1 : 0;
   }
+  function resumeShootPosition() {
+    // After re-opening the installed app, resume the earliest unscored
+    // arrow in round-then-archer order instead of overwriting Round 1.
+    for (let r = 0; r < ROUNDS; r++) {
+      for (const archer of state.archers) {
+        if (archer.rounds[r].some(arrow => arrow === null)) {
+          state.selectedArcherId = archer.id;
+          moveToRound(r);
+          return;
+        }
+      }
+    }
+    if (state.archers.length) { activeRound = ROUNDS - 1; activeArrow = 1; }
+  }
   function selectArcher(id) {
     if (!state.archers.some(a => a.id === id)) return;
     state.selectedArcherId = id;
@@ -84,26 +98,61 @@
     if (!name) return toast('Enter an archer name');
     if (state.archers.some(a => a.name.toLowerCase() === name.toLowerCase())) return toast('That archer is already on the scorecard');
     const archer = {id: makeId(), name, rounds: blankRounds(), photo: null};
-    state.archers.push(archer); state.selectedArcherId = archer.id;
-    activeRound = 0; activeArrow = 0; undo = null;
+    // Keep the first archer selected while creating the shooting order.
+    const firstArcher = state.archers.length === 0;
+    state.archers.push(archer);
+    if (firstArcher || !selected()) { state.selectedArcherId = archer.id; activeRound = 0; activeArrow = 0; }
+    undo = null;
     save(); render(); toast(`${name} added`);
     $('#quick-name').value = '';
     closeModal();
   }
+  // Shoot in roster order: both arrows for archer 1, then both for archer 2,
+  // and so on. Only advance the round once everyone has completed that round.
+  // Using insertion order instead of score rank keeps the shooting line stable.
+  function advanceAfterPair(archerId, roundIndex) {
+    const currentIndex = state.archers.findIndex(archer => archer.id === archerId);
+    for (let offset = 1; offset < state.archers.length; offset++) {
+      const next = state.archers[(currentIndex + offset) % state.archers.length];
+      if (next.rounds[roundIndex].some(arrow => arrow === null)) {
+        state.selectedArcherId = next.id;
+        moveToRound(roundIndex);
+        return next;
+      }
+    }
+    // Every archer finished this round: move to the first unfinished round.
+    // Wrap around for older gaps (e.g. if an archer joins partway through).
+    for (let offset = 1; offset < ROUNDS; offset++) {
+      const targetRound = (roundIndex + offset) % ROUNDS;
+      for (const next of state.archers) {
+        if (next.rounds[targetRound].some(arrow => arrow === null)) {
+          state.selectedArcherId = next.id;
+          moveToRound(targetRound);
+          return next;
+        }
+      }
+    }
+    return null;
+  }
   function recordScore(letter) {
     const archer = selected();
     if (!archer || !Object.hasOwn(SCORES, letter)) return;
+    const wasEmpty = archer.rounds[activeRound][activeArrow] === null;
     const oldValue = archer.rounds[activeRound][activeArrow];
     undo = {archerId: archer.id, round: activeRound, arrow: activeArrow, value: oldValue};
     archer.rounds[activeRound][activeArrow] = letter;
     const completed = archer.rounds[activeRound].every(v => v !== null);
-    if (activeArrow === 0) {
+    let next = null;
+    if (wasEmpty && completed) {
+      next = advanceAfterPair(archer.id, activeRound);
+      if (!next) activeArrow = 1; // entire shoot completed
+    } else if (activeArrow === 0 && wasEmpty) {
       activeArrow = 1;
-    } else if (completed && activeRound < ROUNDS - 1) {
-      moveToRound(activeRound + 1);
     }
+    // Edits to previously scored arrows do not unexpectedly change archer.
     save(); render();
-    if (completed && arrowCount(archer) === ROUNDS * ARROWS) toast(`${archer.name} completed — ${points(archer)} / ${FULL_SCORE}!`);
+    if (next) toast(`Next: ${next.name} · Round ${activeRound + 1}`);
+    else if (state.archers.every(a => arrowCount(a) === ROUNDS * ARROWS)) toast('Shoot complete — all archers have finished!');
   }
   function undoShot() {
     if (!undo) return;
@@ -124,11 +173,15 @@
   function render() {
     $('#session-date').textContent = `Shoot started ${new Intl.DateTimeFormat('en-AU', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(new Date(state.shootDate))}  ·  Scores saved on this device`;
     $('#archer-count').textContent = state.archers.length;
-    const leaderboard = ranks();
+    $('#app').classList.toggle('has-archers', state.archers.length > 0);
+    const ranking = ranks();
+    const position = new Map(ranking.map((archer, i) => [archer.id, i + 1]));
+    // Keep cards in shooting order; scores/ranks update without moving cards around.
+    const leaderboard = state.archers;
     $('#archer-list').innerHTML = leaderboard.map((archer, index) => {
       const total = points(archer), count = arrowCount(archer), active = state.selectedArcherId === archer.id;
       return `<button type="button" class="archer-card ${active ? 'selected' : ''}" data-action="select-archer" data-id="${esc(archer.id)}" aria-current="${active ? 'true' : 'false'}">
-        <div class="archer-rank">${index > 0 && points(leaderboard[index-1]) === total ? '＝' : index+1}</div>${avatar(archer, 'list-avatar')}<div><div class="archer-name">${esc(archer.name)}</div><div class="archer-progress">${count}/40 arrows · ${completeRounds(archer)}/20 rounds</div></div>
+        <div class="archer-rank">${position.get(archer.id)}</div>${avatar(archer, 'list-avatar')}<div><div class="archer-name">${esc(archer.name)}</div><div class="archer-progress">${count}/40 arrows · ${completeRounds(archer)}/20 rounds</div><div class="archer-progress-mobile">${completeRounds(archer)}/20 rounds</div></div>
         <div class="archer-points-wrap"><div class="archer-points">${total}</div><div class="archer-points-sub">/ 800 pts</div></div></button>`;
     }).join('') || `<div class="archer-empty">No archers yet.<br>Enter a name above to start scoring.</div>`;
     const archer = selected();
@@ -140,14 +193,14 @@
     const currentRound = archer.rounds[activeRound];
     const roundSum = roundPoints(currentRound);
     $('#score-panel').innerHTML = `
-      <div class="score-top"><div class="archer-heading">${avatar(archer)}<div><div class="selected-label">NOW SCORING</div><h2>${esc(archer.name)}</h2></div></div>
+      <div class="score-top"><div class="archer-heading">${avatar(archer)}<div><div class="selected-label">NOW SCORING · ARCHER ${state.archers.findIndex(a => a.id === archer.id) + 1} OF ${state.archers.length}</div><h2>${esc(archer.name)}</h2></div></div>
         <div class="minor-actions"><button class="tiny-action" data-action="photo-archer" type="button">${archer.photo ? 'Edit photo' : '+ Photo'}</button><button class="tiny-action" data-action="rename-archer" type="button">Rename</button><button class="tiny-action" data-action="delete-archer" type="button">Remove</button></div></div>
       <div class="total-strip"><div class="total-stat"><div class="total-label">TOTAL SCORE</div><div class="total-number">${total}<small> / 800</small></div></div><div class="total-stat"><div class="total-label">ROUNDS DONE</div><div class="total-number">${finished}<small> / 20</small></div></div><div class="total-stat"><div class="total-label">ARROWS SHOT</div><div class="total-number">${count}<small> / 40</small></div></div></div>
       <div class="total-progress" aria-label="${count} of 40 arrows entered"><span style="width:${count / 40 * 100}%"></span></div>
-      <div class="score-content"><div class="round-heading"><div><h3>Round ${activeRound+1} <span style="font-weight:500;color:#9daa9f">of 20</span></h3><p>Tap an arrow, then choose its score</p></div>
+      <div class="score-content"><div class="round-heading"><div><h3>Round ${activeRound+1} <span style="font-weight:500;color:#9daa9f">of 20</span></h3><p>Two arrows each, then the next archer</p></div>
       <div class="round-nav"><button type="button" data-action="prev-round" aria-label="Previous round" ${activeRound === 0 ? 'disabled' : ''}>‹</button><button type="button" data-action="next-round" aria-label="Next round" ${activeRound === 19 ? 'disabled' : ''}>›</button></div></div>
       <div class="arrow-row">${currentRound.map((letter, index) => `<button type="button" data-action="select-arrow" data-index="${index}" class="arrow-box ${index === activeArrow ? 'active' : ''}" aria-pressed="${index === activeArrow}"><div><div class="arrow-title">ARROW ${index+1}</div><div class="arrow-value ${letter === null ? 'blank' : ''}">${letter === null ? 'Not scored' : letter === 'M' ? 'Miss' : letter}</div></div><div class="arrow-score ${letter === null ? 'blank' : ''}">${letter === null ? '—' : `${SCORES[letter]} pts`}</div></button>`).join('')}</div>
-      <div class="score-instruction"><span>SCORING <strong>ARROW ${activeArrow+1}</strong></span><span>Tap to record</span></div>
+      <div class="score-instruction"><span>${esc(archer.name)} · <strong>ARROW ${activeArrow+1}</strong></span><span>Tap to score</span></div>
       <div class="score-choices"><button class="choice choice-a" type="button" data-action="score" data-letter="A"><span class="choice-letter">A</span><span class="choice-points">20 pts</span></button><button class="choice choice-b" type="button" data-action="score" data-letter="B"><span class="choice-letter">B</span><span class="choice-points">18 pts</span></button><button class="choice choice-c" type="button" data-action="score" data-letter="C"><span class="choice-letter">C</span><span class="choice-points">16 pts</span></button><button class="choice choice-m" type="button" data-action="score" data-letter="M"><span class="choice-letter">Miss</span><span class="choice-points">0 pts</span></button></div>
       <div class="score-actions"><span class="round-score">Round score: <strong>${roundSum} / 40</strong>${currentRound.some(v => v === null) ? ' (incomplete)' : ''}</span><div><button class="clear-btn" type="button" data-action="undo" ${undo ? '' : 'disabled'}>Undo</button><button class="clear-btn" type="button" data-action="clear-arrow" ${currentRound[activeArrow] === null ? 'disabled' : ''}>Clear arrow</button></div></div>
       <div class="section-divider"></div><div class="rounds-section-head"><h3>All 20 rounds</h3><span>Select any round to edit</span></div>
@@ -270,7 +323,8 @@
   function newShoot() {
     if (!confirm('Start a new shoot? This clears every archer’s current scores, but keeps their names. Export or back up this shoot first if you need the results.')) return;
     for (const archer of state.archers) archer.rounds = blankRounds();
-    state.shootDate = new Date().toISOString(); activeRound = 0; activeArrow = 0; undo = null;
+    state.shootDate = new Date().toISOString(); state.selectedArcherId = state.archers[0]?.id ?? null;
+    activeRound = 0; activeArrow = 0; undo = null;
     save(); render(); toast('New shoot started');
   }
   function deleteArcher() {
@@ -284,9 +338,10 @@
   function openHelp() {
     showModal('How scoring works', `<div class="help-steps"><p><strong>1.</strong> Add each archer using the name field. Tap their name to switch between scorecards.</p>
     <p><strong>2.</strong> Each archer scores 20 rounds with 2 arrows per round (40 arrows). Tap A (20), B (18), C (16) or Miss (0). Both arrows count equally.</p>
-    <p><strong>3.</strong> After Arrow 2, the app moves to the next round. Tap any round or arrow to correct a score. Empty arrows are not counted as misses.</p>
-    <p><strong>4.</strong> Add an optional photo using the + Photo button. Images stay on the device; a backup includes them.</p>
-    <p><strong>5.</strong> Tap Email results to share the CSV as an attachment through your phone's share sheet. If unavailable, a CSV downloads and an email draft opens — attach the downloaded file yourself. Backup/Restore preserves scores and photos.</p>
+    <p><strong>3.</strong> After scoring both arrows, the app automatically selects the next archer in the order you added them. After every archer finishes the round, it moves to the next round and starts with Archer 1 again.</p>
+    <p><strong>4.</strong> Tap an archer, round or arrow to correct a score. Undo also works after switching archers. Editing an existing score will not automatically move to another archer. Empty arrows are not misses.</p>
+    <p><strong>5.</strong> Add an optional photo using the + Photo button. Images stay on the device; a backup includes them.</p>
+    <p><strong>6.</strong> Tap Email results to share the CSV as an attachment through your phone's share sheet. If unavailable, a CSV downloads and an email draft opens — attach the downloaded file yourself. Backup/Restore preserves scores and photos.</p>
     <div class="modal-note"><strong>Install on a phone:</strong> Open the hosted HTTPS site in Safari on iPhone, then Share → Add to Home Screen. On Android, open it in Chrome, then choose Install app or Add to Home screen. After the first load, it works offline. Scores stay on this device unless you export a backup.</div></div>`);
   }
   document.addEventListener('click', event => {
@@ -343,7 +398,9 @@
     try { restored = cleanState(JSON.parse(await file.text())); }
     catch (error) { return toast('Not a valid Pacific Bowmen backup'); }
     if (!confirm(`Restore a backup with ${restored.archers.length} archer(s)? This replaces all scores currently on this device.`)) return;
-    state = restored; activeRound = 0; activeArrow = 0; undo = null;
+    state = restored; undo = null;
+    const archer = selected();
+    moveToRound(Math.max(0, archer?.rounds.findIndex(round => round.some(v => v === null)) ?? 0));
     save(); render(); toast('Backup restored');
   });
   document.addEventListener('keydown', event => {
@@ -352,5 +409,5 @@
   if ('serviceWorker' in navigator && ['https:', 'http:'].includes(location.protocol)) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Offline registration failed', err)));
   }
-  save(); render();
+  resumeShootPosition(); save(); render();
 })();
