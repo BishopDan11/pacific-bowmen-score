@@ -94,3 +94,15 @@ Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then 
 - History includes a Clear History button, disabled when empty.
 - Confirmation identifies how many archived shoots will be deleted.
 - The active shoot and exported JSON backups are unaffected.
+
+## v1.4.5 — Archer entry scrolling
+
+- Adding the first archer no longer scrolls the page down to Now Scoring. You can enter the entire team without the page jumping.
+- Retains the existing mobile scroll snapping, overscroll controls, and returning-shoot scoring focus.
+
+
+## v1.4.6 — Archer add controls cleanup
+
+- Removed the duplicate + button in the Participants header; use the inline Add button.
+- Removed the redundant Add an archer button in the empty scoring panel.
+- No scoring, history, local storage, or scrolling behaviour changed.

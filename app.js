@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.4.4. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.4.6. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -216,7 +216,7 @@
     save(); render(); toast(`${name} added`);
     $('#quick-name').value = '';
     closeModal();
-    if (firstArcher) setTimeout(() => focusScoring(), 80);
+    // Stay on the Participants panel while the scorer adds the shooting group.
   }
   // Shoot in roster order: both arrows for archer 1, then both for archer 2,
   // and so on. Only advance the round once everyone has completed that round.
@@ -302,7 +302,7 @@
     }).join('') || `<div class="archer-empty">No archers yet.<br>Enter a name above to start scoring.</div>`;
     const archer = selected();
     if (!archer) {
-      $('#score-panel').innerHTML = `<div class="empty-shoot"><div class="empty-art" aria-hidden="true"></div><div class="panel-kicker">READY WHEN YOU ARE</div><h2>Let’s start scoring.</h2><p>Add your first archer to track 20 rounds, two arrows per round. Every score saves automatically.</p><button class="primary-btn" type="button" data-action="add-archer">+ Add an archer</button></div>`;
+      $('#score-panel').innerHTML = `<div class="empty-shoot"><div class="empty-art" aria-hidden="true"></div><div class="panel-kicker">READY WHEN YOU ARE</div><h2>Let’s start scoring.</h2><p>Add your first archer to track 20 rounds, two arrows per round. Every score saves automatically.</p></div>`;
       return;
     }
     const total = points(archer), count = arrowCount(archer), finished = completeRounds(archer);
