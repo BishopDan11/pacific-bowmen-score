@@ -253,3 +253,11 @@ body { background: #f4f5fb; }
   html, body { overscroll-behavior-y: none; }
   .site-header { background-color: #141c70; }
 }
+
+/* ABA three-arrow scoring: make all arrow tiles fit comfortably on phones. */
+.arrow-row.three-arrows { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.arrow-row.three-arrows .arrow-box { min-width:0; padding:12px 8px; }
+.arrow-row.three-arrows .arrow-title { font-size:clamp(10px,2.8vw,14px); }
+.arrow-row.three-arrows .arrow-value { font-size:clamp(15px,4.3vw,25px); overflow-wrap:anywhere; }
+.arrow-row.three-arrows .arrow-score { font-size:clamp(12px,3vw,17px); }
+.arrow-box.skipped { opacity:.55; cursor:default; background:#f3f4f9; }

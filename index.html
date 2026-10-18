@@ -20,7 +20,7 @@
       <div class="header-inner">
         <div class="brand">
           <div class="brand-symbol" aria-hidden="true"><span class="bullseye"></span><img class="club-logo" src="https://pacificbowmen.org.au/Sys/Branding/Logo" alt="" onload="this.style.display='block'" onerror="this.hidden=true"></div>
-          <div class="brand-copy"><div class="brand-top">PACIFIC BOWMEN</div><div class="brand-sub">Two-arrow scorecard</div></div>
+          <div class="brand-copy"><div class="brand-top">PACIFIC BOWMEN</div><div class="brand-sub">Archery scorecard</div></div>
         </div>
         <div class="header-actions">
           <button class="header-btn" type="button" data-action="help" aria-label="How to use this app"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.6 2.6 0 1 1 4.7 1.5c-.6.7-2.2 1.4-2.2 2.8"></path><path d="M12 17.2h.01"></path></svg><span class="desktop-label">Help</span></button>
@@ -32,7 +32,7 @@
     <main class="main-wrap">
       <div class="page-intro">
         <div><div class="eyebrow">CLUB SCOREKEEPING</div><h1><span id="shoot-heading">October Club Shoot</span> <span class="heading-target">↗</span></h1><p id="session-date" class="subtitle"></p></div>
-        <div class="rule-chip"><span>20 ROUNDS</span><span class="chip-separator">·</span><span>2 ARROWS</span><span class="chip-separator">·</span><strong>800 MAX</strong></div>
+        <div class="rule-chip"><span>20 ROUNDS</span><span class="chip-separator">·</span><span id="format-arrows">2 ARROWS</span><span class="chip-separator">·</span><strong id="format-max">800 MAX</strong></div>
       </div>
       <div id="storage-alert" class="storage-alert" role="alert" hidden>Scores can't be saved in this browser. Try hosting the app over HTTPS and allowing local storage.</div>
       <div class="app-grid">
@@ -44,7 +44,7 @@
         </aside>
         <section id="score-panel" class="panel score-panel" aria-live="off"></section>
       </div>
-      <footer class="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.4.8</footer>
+      <footer class="page-footer" id="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.4.9</footer>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <input type="file" id="history-file" accept="application/json,.json" hidden>

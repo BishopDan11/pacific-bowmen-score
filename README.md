@@ -118,3 +118,7 @@ Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then 
 - Keep ordinary Chrome navigation and scrolling behaviour from v1.4.7.
 - Update the offline service worker cache and opaque background styling.
 - Current scores and archived history remain in device storage, unchanged.
+
+## v1.4.9 — ABA three-arrow scoring
+
+New Shoot now first asks Club/Casual, then scoring format. Pacific Bowmen 2-arrow remains unchanged (20×2, maximum 800). ABA 3-arrow uses first-scoring-arrow rules: arrow 1 A/B/C = 20/18/16, arrow 2 = 14/12/10, arrow 3 = 8/6/4; misses zero. A first hit ends the target and later arrows are marked not shot; three misses also finish a target. Maximum 400. Each shoot and archived JSON retains its format. Older backups without format default to 2-arrow. Email CSV now includes shoot format and a third arrow column.
