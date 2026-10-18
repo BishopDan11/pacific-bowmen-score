@@ -245,3 +245,11 @@ html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 .clear-history-btn{width:100%;min-height:44px;border:1px solid #ce7d7d;border-radius:10px;color:#a13232;background:#fffafa;font-size:13px;font-weight:750;padding:10px 14px}
 .clear-history-btn:disabled{opacity:.4;cursor:not-allowed}
 .clear-history-btn:not(:disabled):active{background:#ffecec}
+
+/* v1.4.8: iOS Home Screen safe scrolling / opaque root background */
+html { background: #f4f5fb; scroll-behavior: auto; }
+body { background: #f4f5fb; }
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: none; }
+  .site-header { background-color: #141c70; }
+}

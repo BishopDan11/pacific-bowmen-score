@@ -111,3 +111,10 @@ Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then 
 - Keep the inline Add archer field visible for every participant.
 - Remove mobile page-level vertical snap that interfered with adding archers, while retaining overscroll boundary containment.
 - No local storage schema changes.
+
+## v1.4.8 — iPhone Home Screen correction
+- Standalone Home Screen mode no longer automatically jumps to the scorecard on launch.
+- Prevent stale scroll offset restoration in standalone mode and restore the top of the page at launch.
+- Keep ordinary Chrome navigation and scrolling behaviour from v1.4.7.
+- Update the offline service worker cache and opaque background styling.
+- Current scores and archived history remain in device storage, unchanged.

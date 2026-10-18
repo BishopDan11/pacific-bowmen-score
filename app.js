@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.4.7. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.4.8. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -552,6 +552,16 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Offline registration failed', err)));
   }
   resumeShootPosition(); save(); render();
-  // Returning to an existing shoot opens at Now Scoring on phones.
-  if (state.archers.length) window.addEventListener('load', () => setTimeout(() => focusScoring({smooth:false}), 100), {once:true});
+  // Standalone iOS PWAs can restore an obsolete scroll offset on launch.
+  // Never auto-scroll the installed app to the scoring panel: start at the
+  // header and allow the archer list and scorecard to scroll naturally.
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (standalone) {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.addEventListener('load', () => {
+      window.requestAnimationFrame(() => window.scrollTo({top: 0, left: 0, behavior: 'instant'}));
+    }, {once: true});
+  } else if (state.archers.length) {
+    window.addEventListener('load', () => setTimeout(() => focusScoring({smooth:false}), 100), {once:true});
+  }
 })();
