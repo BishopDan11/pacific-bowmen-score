@@ -1,0 +1,42 @@
+# Pacific Bowmen — Two-Arrow Scorecard v1.1.0
+
+A mobile-friendly, locally stored, installable web app (PWA) for iPhone, iPad and Android. There are **no accounts, database, login or external scoring service**, and no build step.
+
+## Scoring
+- 20 rounds per archer, with 2 arrows per round (40 arrows)
+- A = 20, B = 18, C = 16, Miss = 0, for either arrow
+- Maximum score: **800** per archer
+- Add as many archers as needed for the group; each has a separate scorecard and a live leaderboard
+- Auto-advance arrows and rounds, undo mistakes, and select earlier rounds to correct scores
+
+## What's new in v1.1.0
+- **Email results:** Select **Email results** in the top bar. On supported iPhone and Android browsers, the device's native **Share** sheet opens with the CSV **file attached**, and the user can select Mail/Gmail to send. The app does **not** send email automatically. The file contains a row for each of the 20 rounds of each archer; the share message includes a quick leaderboard.
+- **Fallback when file sharing is unavailable:** A CSV downloads and a `mailto:` email draft opens with the leaderboard. You must **attach the downloaded CSV manually** if you want the round-by-round results in the email. The app clearly advises of this. The email draft might not open on devices without a configured email app; the CSV will still be downloaded.
+- **Optional archer headshots:** Select an archer and tap **+ Photo**. You can **Take a photo** with your phone's camera or **Choose photo** from the gallery. Images are scaled down and stored only on this device. They appear in the archer list and on the scorer's screen, and can be replaced or removed. Photos are **excluded** from CSV/email exports.
+- **Backup/Restore:** JSON backups **include photos** alongside scores. Restore also accepts version 1.0 scorecards without photos. Please back up after a shoot, especially before clearing browser/app data.
+- **Club branding:** Colours and header use Pacific Bowmen's navy/gold theme, and the header loads the club's official logo at https://pacificbowmen.org.au/Sys/Branding/Logo. The logo is requested only on the first online load and cached for subsequent offline use where supported; a local target icon is shown if it's unavailable. No user scores or photos are transmitted to the club site.
+
+## Deploy on HTTPS (required to install as an app)
+
+1. Create an empty GitHub repository (e.g. `pacific-bowmen-score`).
+2. Upload the **contents** of this folder (`index.html`, `app.js`, `styles.css`, `sw.js`, manifest and `icons`) to the repository root (or copy them into a static website's root).
+3. In GitHub **Settings → Pages**, choose **Deploy from a branch → main / (root)** and Save. It will provide a `https://USERNAME.github.io/pacific-bowmen-score/` URL.
+4. Open that HTTPS link once while online on each device.
+   - **iPhone:** Open in **Safari**, Share → **Add to Home Screen**.
+   - **Android:** Open in **Chrome**, menu → **Install app** or **Add to Home screen**.
+5. After the first visit, scoring works offline, even with no reception on the range. Email sharing, of course, needs the selected email app and a connection to send.
+
+Also works with Azure Static Web Apps, Cloudflare Pages, Netlify or any static HTTPS host. It does not require Azure SQL, API functions, or paid services.
+
+## Data handling / privacy / limitations
+
+- Scores and headshots are kept in browser/app **localStorage** for that origin. Headshots are downscaled before being stored, and can be removed. People should consent before having a photo taken or shared.
+- Data **does not automatically sync between phones**, and each device has its own roster and scorecard.
+- Photos are **included in a JSON backup**, so treat JSON files with appropriate care, especially if they include minors. The CSV/email export deliberately excludes photos.
+- Clearing website data, switching browsers, uninstalling, or running the app on a different website/domain can lose access to stored scores. Save a JSON backup to prevent data loss.
+- For a local desktop preview, open `index.html`, but rely on an HTTPS site for reliable persistent storage, offline use and mobile file sharing.
+- This app is an independent club scorekeeping utility and is not connected to Pacific Bowmen's membership database.
+
+## Version history
+- v1.0.0 — original two-arrow scoring, leaderboard, CSV export, backup/restore, installable PWA.
+- v1.1.0 — optional photos, local photo storage, emailed CSV via share sheet, branded colours and official logo, privacy notes.

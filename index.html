@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#141c70">
+  <meta name="description" content="Pacific Bowmen two-arrow round scorecard. Score 20 rounds for multiple archers, even offline.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PB Scores">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="icon" href="./icons/favicon.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Pacific Bowmen | Two-Arrow Scorecard</title>
+</head>
+<body>
+  <div id="app">
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-symbol" aria-hidden="true"><span class="bullseye"></span><img class="club-logo" src="https://pacificbowmen.org.au/Sys/Branding/Logo" alt="" onload="this.style.display='block'" onerror="this.hidden=true"></div>
+          <div class="brand-copy"><div class="brand-top">PACIFIC BOWMEN</div><div class="brand-sub">Two-arrow scorecard</div></div>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn" type="button" data-action="help" aria-label="How to use this app"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.6 2.6 0 1 1 4.7 1.5c-.6.7-2.2 1.4-2.2 2.8"></path><path d="M12 17.2h.01"></path></svg><span class="desktop-label">Help</span></button>
+          <button class="header-btn" type="button" data-action="email-results" aria-label="Email results"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg><span class="desktop-label">Email results</span></button>
+          <button class="header-btn header-btn-strong" type="button" data-action="new-shoot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span>New shoot</span></button>
+        </div>
+      </div>
+    </header>
+    <main class="main-wrap">
+      <div class="page-intro">
+        <div><div class="eyebrow">CLUB SCOREKEEPING</div><h1>Today's shoot <span class="heading-target">↗</span></h1><p id="session-date" class="subtitle"></p></div>
+        <div class="rule-chip"><span>20 ROUNDS</span><span class="chip-separator">·</span><span>2 ARROWS</span><span class="chip-separator">·</span><strong>800 MAX</strong></div>
+      </div>
+      <div id="storage-alert" class="storage-alert" role="alert" hidden>Scores can't be saved in this browser. Try hosting the app over HTTPS and allowing local storage.</div>
+      <div class="app-grid">
+        <aside class="panel people-panel">
+          <div class="panel-header"><div><div class="panel-kicker">PARTICIPANTS</div><h2>Archers <span id="archer-count" class="count-pill">0</span></h2></div><button class="icon-btn" title="Add archer" aria-label="Add archer" data-action="add-archer">+</button></div>
+          <div class="add-archer-inline"><form id="quick-add" autocomplete="off"><label class="sr-only" for="quick-name">Archer name</label><input id="quick-name" name="name" maxlength="50" placeholder="Enter archer name" required><button type="submit" aria-label="Add archer">Add</button></form></div>
+          <div id="archer-list" class="archer-list" aria-label="Archer leaderboard"></div>
+          <div class="panel-footer"><span class="live-dot"></span> On-device only <span class="footer-spacer"></span><button class="text-button" data-action="export-csv">CSV</button><span class="footer-dot">·</span><button class="text-button" data-action="backup">Backup</button><span class="footer-dot">·</span><button class="text-button" data-action="restore">Restore</button></div>
+        </aside>
+        <section id="score-panel" class="panel score-panel" aria-live="off"></section>
+      </div>
+      <footer class="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally</footer>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <input type="file" id="restore-file" accept="application/json,.json" hidden>
+    <input type="file" id="take-photo-file" accept="image/*" capture="user" hidden>
+    <input type="file" id="choose-photo-file" accept="image/*" hidden>
+    <div id="modal-backdrop" class="modal-backdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-head"><h2 id="modal-title"></h2><button type="button" class="modal-close" aria-label="Close dialog" data-action="close-modal">×</button></div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
