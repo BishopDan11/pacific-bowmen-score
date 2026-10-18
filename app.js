@@ -1,7 +1,8 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.3.1. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.4.1. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
+  const HISTORY_KEY = 'pacific-bowmen-history-v1';
   const ROUNDS = 20;
   const ARROWS = 2;
   const SCORES = Object.freeze({A: 20, B: 18, C: 16, M: 0});
@@ -13,6 +14,7 @@
   let activeRound = 0;
   let activeArrow = 0;
   let undo = null;
+  let history = readHistory();
 
   function blankRounds() { return Array.from({length: ROUNDS}, () => [null, null]); }
   function makeId() { return globalThis.crypto?.randomUUID?.() || `a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
@@ -45,6 +47,88 @@
       console.warn('Unable to load saved scores', err);
       return newState();
     }
+  }
+  function readHistory() {
+    try {
+      const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      if (!Array.isArray(value)) return [];
+      return value.slice(0, 120).filter(v => v && typeof v.id === 'string' && v.data).map(v => ({
+        id: v.id, savedAt: v.savedAt, data: cleanState(v.data)
+      }));
+    } catch (error) { console.warn('Unable to read history', error); return []; }
+  }
+  function persistHistory(next) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); history = next; return true; }
+    catch (error) { console.warn('Not enough storage for history', error); toast('Device storage full — export to Files first'); return false; }
+  }
+  function shootId(data) { return data.shootDate; }
+  function archiveShoot(data = state) {
+    if (!data.archers.length) return true;
+    const safe = cleanState(data);
+    const id = shootId(safe);
+    const next = [{id, savedAt: new Date().toISOString(), data: safe}, ...history.filter(h => h.id !== id)];
+    return persistHistory(next);
+  }
+  function shootStats(data) {
+    const shots = data.archers.reduce((sum, a) => sum + arrowCount(a), 0);
+    const capacity = data.archers.length * ROUNDS * ARROWS;
+    return {shots, capacity, complete: capacity > 0 && shots === capacity};
+  }
+  function formattedDate(date) {
+    return new Intl.DateTimeFormat('en-AU', {day:'numeric', month:'short', year:'numeric'}).format(new Date(date));
+  }
+  function makeJsonFile(data) {
+    return new File([JSON.stringify(data, null, 2)], `Pacific_Bowmen_${new Date(data.shootDate).toISOString().slice(0,10)}.json`, {type:'application/json'});
+  }
+  async function saveToFiles(data = state) {
+    if (!data.archers.length) return toast('Add archers before saving a shoot');
+    const file = makeJsonFile(data);
+    if (navigator.share && navigator.canShare?.({files: [file]})) {
+      try { await navigator.share({title: 'Pacific Bowmen shoot backup', files: [file]}); return; }
+      catch (error) { if (error?.name === 'AbortError') return; console.warn('File share failed', error); }
+    }
+    download(file.name, JSON.stringify(data, null, 2), 'application/json');
+    toast('Shoot downloaded — save JSON in Files');
+  }
+  function saveShoot() {
+    if (!state.archers.length) return toast('No archers to save');
+    if (archiveShoot()) toast('Shoot saved to History on this device');
+  }
+  function showHistory() {
+    const entries = history.map(h => {
+      const stats = shootStats(h.data);
+      const status = stats.complete ? 'Complete' : `In progress · ${stats.shots}/${stats.capacity} arrows`;
+      return `<div class="history-entry"><div class="history-details"><strong>${esc(formattedDate(h.data.shootDate))}</strong><span>${h.data.archers.length} archers · ${esc(status)}</span></div><div class="history-buttons"><button type="button" class="outline-btn" data-action="view-history" data-id="${esc(h.id)}">View</button><button type="button" class="outline-btn" data-action="export-history" data-id="${esc(h.id)}">Files</button></div></div>`;
+    }).join('');
+    showModal('Shoot History', `<div class="history-list"><p>Previous shoots saved on this device. Open an entry to view its results without changing the current shoot. You can also import a JSON shoot from Files.</p>${entries || '<p>No archived shoots yet. Tap Save Shoot, or begin a new shoot to archive the existing scores.</p>'}<button type="button" class="primary-btn" data-action="load-past-shoot">Load from Files</button></div>`);
+  }
+  function viewHistory(id) {
+    const entry = history.find(h => h.id === id); if (!entry) return;
+    const data = entry.data;
+    const rows = [...data.archers].sort((a,b)=>points(b)-points(a)).map(a => {
+      const perRound = a.rounds.map((r,i) => `<span>R${i+1}: ${r.map(v=>v === null?'—':v === 'M'?'Miss':v).join(' / ')} (${roundPoints(r)})</span>`).join('');
+      return `<details class="history-archer"><summary><strong>${esc(a.name)}</strong><span>${points(a)} / 800 · ${arrowCount(a)}/40</span></summary><div class="history-rounds">${perRound}</div></details>`;
+    }).join('');
+    showModal(`Shoot · ${formattedDate(data.shootDate)}`, `<div class="history-view"><p>Read-only archived results · ${data.archers.length} archers</p>${rows}<div class="history-footer"><button class="outline-btn" type="button" data-action="export-history" data-id="${esc(id)}">Save to Files</button><button class="outline-btn" type="button" data-action="activate-history" data-id="${esc(id)}">Restore for editing</button><button class="outline-btn" type="button" data-action="history">Back to History</button></div></div>`);
+  }
+  function activateHistory(id) {
+    const entry = history.find(h => h.id === id); if (!entry) return;
+    if (!confirm('Restore this historical shoot for editing? The current shoot will be archived first and then replaced.')) return;
+    if (!archiveShoot()) return;
+    state = cleanState(entry.data); undo = null; resumeShootPosition();
+    if (!save()) return toast('Could not store restored shoot');
+    closeModal(); render(); toast('Historical shoot restored');
+  }
+  async function importPastShoot(file) {
+    if (!file) return;
+    if (file.size > 12_000_000) return toast('File too large');
+    let data;
+    try { data = cleanState(JSON.parse(await file.text())); }
+    catch (error) { return toast('Invalid Pacific Bowmen JSON file'); }
+    if (!data.archers.length) return toast('This file has no archers');
+    if (history.some(h => h.id === shootId(data)) && !confirm('Replace the existing archived version of this shoot?')) return;
+    if (!archiveShoot(data)) return;
+    showHistory(); toast('Past shoot added to History');
   }
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); $('#storage-alert').hidden = true; return true; }
@@ -232,6 +316,12 @@
     setTimeout(() => URL.revokeObjectURL(url), 3000);
   }
   function slugDate() { return new Date(state.shootDate).toLocaleDateString('en-CA', {year:'numeric',month:'2-digit',day:'2-digit'}); }
+  function emailSubject() {
+    const date = new Date(state.shootDate);
+    const month = new Intl.DateTimeFormat('en-AU', {month: 'long'}).format(date);
+    const day = new Intl.DateTimeFormat('en-AU', {day: '2-digit', month: '2-digit', year: 'numeric'}).format(date);
+    return `${month} Club shoot - ${day}`;
+  }
   function makeCSV() {
     const header = ['Shoot Date', 'Archer', 'Round', 'Arrow 1', 'Arrow 2', 'Round Points', 'Running Total', 'Final Total', 'Arrows Scored'];
     const rows = [header];
@@ -259,7 +349,7 @@
     const file = new File([makeCSV()], `pacific-bowmen-scores-${slugDate()}.csv`, {type: 'text/csv'});
     if (navigator.share && navigator.canShare?.({files: [file]})) {
       try {
-        await navigator.share({title: `Pacific Bowmen scores — ${slugDate()}`, text: emailSummary(), files: [file]});
+        await navigator.share({title: emailSubject(), text: emailSummary(), files: [file]});
         return;
       } catch (error) {
         if (error?.name === 'AbortError') return;
@@ -268,7 +358,7 @@
     }
     // Mailto cannot attach a file. Download the CSV and open an email with the ranked results.
     download(file.name, makeCSV(), 'text/csv;charset=utf-8');
-    const subject = encodeURIComponent(`Pacific Bowmen scores — ${slugDate()}`);
+    const subject = encodeURIComponent(emailSubject());
     const body = encodeURIComponent(emailSummary() + '\n\nPlease attach the downloaded CSV file for all round-by-round scores.');
     toast('CSV downloaded — attach it to your email draft');
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
@@ -326,7 +416,8 @@
     save(); closeModal(); render(); toast('Photo removed');
   }
   function newShoot() {
-    if (!confirm('Start a new shoot? This removes ALL current archers, headshots and scores from this device. Export or back up the current shoot first if you want to keep its results.')) return;
+    if (!confirm('Start a new shoot? Current scores and photos will be saved to Shoot History first, then the active archer list will be cleared.')) return;
+    if (!archiveShoot()) return;
     state = newState();
     activeRound = 0; activeArrow = 0; undo = null;
     save(); render(); toast('New shoot started');
@@ -345,7 +436,7 @@
     <p><strong>3.</strong> After scoring both arrows, the app automatically selects the next archer in the order you added them. After every archer finishes the round, it moves to the next round and starts with Archer 1 again.</p>
     <p><strong>4.</strong> Tap an archer, round or arrow to correct a score. Undo also works after switching archers. Editing an existing score will not automatically move to another archer. Empty arrows are not misses.</p>
     <p><strong>5.</strong> Add an optional photo using the + Photo button. Images stay on the device; a backup includes them.</p>
-    <p><strong>6.</strong> Tap Email results to share the CSV as an attachment through your phone's share sheet. If unavailable, a CSV downloads and an email draft opens — attach the downloaded file yourself. Backup/Restore preserves scores and photos.</p>
+    <p><strong>6.</strong> Tap Save Shoot to archive the current shoot, History to review past shoots, Save to Files to share JSON, or Load from Files to import one. New Shoot automatically archives the current shoot before clearing archers.</p><p><strong>7.</strong> Tap Email results to share the CSV as an attachment through your phone's share sheet. If unavailable, a CSV downloads and an email draft opens — attach the downloaded file yourself. Backup/Restore preserves scores and photos.</p>
     <div class="modal-note"><strong>Install on a phone:</strong> Open the hosted HTTPS site in Safari on iPhone, then Share → Add to Home Screen. On Android, open it in Chrome, then choose Install app or Add to Home screen. After the first load, it works offline. Scores stay on this device unless you export a backup.</div></div>`);
   }
   document.addEventListener('click', event => {
@@ -373,6 +464,13 @@
       case 'choose-photo': $('#choose-photo-file').click(); break;
       case 'remove-photo': removePhoto(); break;
       case 'backup': backup(); break;
+      case 'save-shoot': saveShoot(); break;
+      case 'save-files': saveToFiles(); break;
+      case 'history': showHistory(); break;
+      case 'load-past-shoot': $('#history-file').click(); break;
+      case 'view-history': viewHistory(button.dataset.id); break;
+      case 'export-history': { const h=history.find(h=>h.id===button.dataset.id); if(h) saveToFiles(h.data); break; }
+      case 'activate-history': activateHistory(button.dataset.id); break;
       case 'restore': $('#restore-file').click(); break;
       case 'help': openHelp(); break;
     }
@@ -394,6 +492,10 @@
       if (file) await processPhoto(file);
     });
   }
+  $('#history-file').addEventListener('change', async event => {
+    const file = event.target.files?.[0]; event.target.value = '';
+    await importPastShoot(file);
+  });
   $('#restore-file').addEventListener('change', async event => {
     const file = event.target.files?.[0]; event.target.value = '';
     if (!file) return;

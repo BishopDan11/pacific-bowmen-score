@@ -64,3 +64,15 @@ Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then 
 - v1.1.0 — optional photos, local photo storage, emailed CSV via share sheet, branded colours and official logo, privacy notes.
 
 - v1.3.1 — mobile layout rebuild, fixed shooting order across archers, stable roster/ranking, edit and undo handoff, cache update.
+
+
+## v1.4.1 — On-device Shoot History
+- New Shoot automatically snapshots the current active shoot before clearing all archers. If the archive cannot be written (for example due to local storage limits), New Shoot is cancelled.
+- Save Shoot stores/updates a historical snapshot; History views results without changing active scoring.
+- Files exports JSON using mobile share sheet (Save to Files on iPhone) or downloads when unavailable. Load from Files imports a JSON backup into history without overwriting active scores.
+- Restoring a historical shoot for editing requires confirmation and first archives the current shoot.
+- The archive exists only inside this particular browser/device; deleting website data may erase it. Export JSON files to Files/iCloud for durable backups. History is not synchronised between the two scorers.
+
+## v1.4.1 — Email subject
+- Email results now proposes a shoot-date subject such as `October Club shoot - 18/10/2026`.
+- The mailto fallback sets the exact subject. When sharing an attached CSV through the native iOS/Android share sheet, the title is passed to the receiving app, but some mail apps may ignore it; check the subject before sending.
