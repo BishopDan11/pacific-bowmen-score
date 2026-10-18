@@ -106,3 +106,8 @@ Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then 
 - Removed the duplicate + button in the Participants header; use the inline Add button.
 - Removed the redundant Add an archer button in the empty scoring panel.
 - No scoring, history, local storage, or scrolling behaviour changed.
+
+## v1.4.7 — Archer adding and scrolling correction
+- Keep the inline Add archer field visible for every participant.
+- Remove mobile page-level vertical snap that interfered with adding archers, while retaining overscroll boundary containment.
+- No local storage schema changes.

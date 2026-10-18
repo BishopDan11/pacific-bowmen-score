@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.4.6. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.4.7. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';

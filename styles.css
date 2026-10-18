@@ -97,7 +97,7 @@ html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   .add-archer-inline { padding:11px 12px; }
   .add-archer-inline input { font-size:16px; min-height:44px; }
   .add-archer-inline button { min-height:44px; padding:0 17px; font-size:14px; }
-  #app.has-archers .add-archer-inline { display:none; }
+  /* Keep archer entry visible for the whole shooting group. */
   .archer-list {
     display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start;
     gap:7px; padding:10px 12px 12px; max-height:166px; overflow-x:hidden; overflow-y:auto;
@@ -225,13 +225,13 @@ html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 /* v1.4.3 — gently anchor mobile scoring while permitting deliberate scrolling */
 @media (max-width:690px) {
   html {
-    scroll-snap-type: y proximity;
-    scroll-padding-top: 10px;
+    scroll-snap-type: none;
+    scroll-padding-top: 0;
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
   body { overscroll-behavior-y: none; }
-  .score-panel { scroll-snap-align: start; scroll-margin-top: 10px; }
+  .score-panel { scroll-snap-align: none; scroll-margin-top: 10px; }
   /* The page remains scrollable; small swipes near Now Scoring snap back. */
   .score-choices button { touch-action: manipulation; }
   .page-footer { margin-bottom: 0; }
