@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.4.2. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.4.4. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -109,7 +109,15 @@
       const status = stats.complete ? 'Complete' : `In progress · ${stats.shots}/${stats.capacity} arrows`;
       return `<div class="history-entry"><div class="history-details"><strong>${esc(shootTitle(h.data))}</strong><span>${esc(formattedDate(h.data.shootDate))}</span><span>${h.data.archers.length} archers · ${esc(status)}</span></div><div class="history-buttons"><button type="button" class="outline-btn" data-action="view-history" data-id="${esc(h.id)}">View</button><button type="button" class="outline-btn" data-action="export-history" data-id="${esc(h.id)}">Files</button></div></div>`;
     }).join('');
-    showModal('Shoot History', `<div class="history-list"><p>Previous shoots saved on this device. Open an entry to view its results without changing the current shoot. You can also import a JSON shoot from Files.</p>${entries || '<p>No archived shoots yet. Tap Save Shoot, or begin a new shoot to archive the existing scores.</p>'}<button type="button" class="primary-btn" data-action="load-past-shoot">Load from Files</button></div>`);
+    showModal('Shoot History', `<div class="history-list"><p>Previous shoots saved on this device. Open an entry to view its results without changing the current shoot. You can also import a JSON shoot from Files.</p>${entries || '<p>No archived shoots yet. Tap Save Shoot, or begin a new shoot to archive the existing scores.</p>'}<button type="button" class="primary-btn" data-action="load-past-shoot">Load from Files</button><div class="clear-history-footer"><button type="button" class="clear-history-btn" data-action="clear-history" ${history.length ? '' : 'disabled'}>Clear History${history.length ? ` (${history.length})` : ''}</button></div></div>`);
+  }
+  function clearHistory() {
+    const count = history.length;
+    if (!count) return;
+    if (!confirm(`Permanently delete ${count} archived shoot${count === 1 ? '' : 's'} from this device?\n\nThe current shoot and exported JSON backups will not be affected. This cannot be undone.`)) return;
+    if (!persistHistory([])) return;
+    showHistory();
+    toast(`${count} archived shoot${count === 1 ? '' : 's'} deleted`);
   }
   function viewHistory(id) {
     const entry = history.find(h => h.id === id); if (!entry) return;
@@ -186,6 +194,15 @@
     moveToRound(firstIncomplete < 0 ? ROUNDS - 1 : firstIncomplete);
     save(); render();
   }
+  function focusScoring({smooth = true} = {}) {
+    if (!matchMedia('(max-width: 690px)').matches || !state.archers.length) return;
+    if (!$('#modal-backdrop').hidden) return;
+    const panel = $('#score-panel');
+    if (!panel) return;
+    // Anchor the panel below the browser chrome, without shifting after every score.
+    const top = window.scrollY + panel.getBoundingClientRect().top - 10;
+    window.scrollTo({top: Math.max(0, top), behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'instant'});
+  }
   function addArcher(name) {
     name = name.trim().replace(/\s+/g, ' ').slice(0, 50);
     if (!name) return toast('Enter an archer name');
@@ -199,6 +216,7 @@
     save(); render(); toast(`${name} added`);
     $('#quick-name').value = '';
     closeModal();
+    if (firstArcher) setTimeout(() => focusScoring(), 80);
   }
   // Shoot in roster order: both arrows for archer 1, then both for archer 2,
   // and so on. Only advance the round once everyone has completed that round.
@@ -353,26 +371,23 @@
       ranks().map((a, i) => `${i+1}. ${a.name}: ${points(a)}/800 (${arrowCount(a)}/40 arrows)`).join('\n') +
       '\n\nScores recorded locally using Pacific Bowmen Scorecard.';
   }
-  function emailResults() {
+  async function emailResults() {
     if (!state.archers.length) return toast('Add an archer before emailing results');
-    showModal('Email results', `<div class="email-choices"><p><strong>Subject:</strong> ${esc(emailSubject())}</p><button class="primary-btn" type="button" data-action="email-draft">Email with subject</button><p>Opens an email draft with the correct subject. The CSV downloads separately; attach it manually.</p><button class="outline-btn" type="button" data-action="share-email-csv">Share CSV attachment</button><p>Uses the iPhone Share menu to attach the CSV automatically, but Mail and Outlook may ignore the subject.</p></div>`);
-  }
-  function emailDraft() {
-    const filename = `pacific-bowmen-scores-${slugDate()}.csv`;
-    download(filename, makeCSV(), 'text/csv;charset=utf-8');
-    const subject = encodeURIComponent(emailSubject());
-    const body = encodeURIComponent(emailSummary() + `\n\nPlease attach ${filename} (downloaded separately) for all round-by-round scores.`);
-    closeModal();
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  }
-  async function shareEmailCSV() {
+    // Use the iOS/Android share sheet: selecting Mail attaches the CSV.
+    // Apple Mail and Outlook may override the suggested subject.
     const file = new File([makeCSV()], `pacific-bowmen-scores-${slugDate()}.csv`, {type:'text/csv'});
     if (navigator.share && navigator.canShare?.({files:[file]})) {
-      try { await navigator.share({title:emailSubject(),text:emailSummary(),files:[file]}); closeModal(); return; }
-      catch (error) { if (error?.name === 'AbortError') return; console.warn('Unable to share CSV',error); }
+      try {
+        await navigator.share({title:emailSubject(),text:emailSummary(),files:[file]});
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        console.warn('Unable to share CSV', error);
+      }
     }
-    toast('CSV sharing unavailable; using email draft');
-    emailDraft();
+    // Desktop or older browsers: download the attachment for later use.
+    download(file.name, makeCSV(), 'text/csv;charset=utf-8');
+    toast('CSV downloaded — sharing attachments is unavailable in this browser');
   }
   function backup() {
     download(`pacific-bowmen-backup-${slugDate()}.json`, JSON.stringify(state, null, 2), 'application/json');
@@ -476,8 +491,6 @@
       case 'undo': undoShot(); break;
       case 'new-shoot': newShoot(); break;
       case 'start-shoot': startShoot(button.dataset.type); break;
-      case 'email-draft': emailDraft(); break;
-      case 'share-email-csv': shareEmailCSV(); break;
       case 'delete-archer': deleteArcher(); break;
       case 'export-csv': exportCSV(); break;
       case 'email-results': emailResults(); break;
@@ -489,6 +502,7 @@
       case 'save-shoot': saveShoot(); break;
       case 'save-files': saveToFiles(); break;
       case 'history': showHistory(); break;
+      case 'clear-history': clearHistory(); break;
       case 'load-past-shoot': $('#history-file').click(); break;
       case 'view-history': viewHistory(button.dataset.id); break;
       case 'export-history': { const h=history.find(h=>h.id===button.dataset.id); if(h) saveToFiles(h.data); break; }
@@ -538,4 +552,6 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Offline registration failed', err)));
   }
   resumeShootPosition(); save(); render();
+  // Returning to an existing shoot opens at Now Scoring on phones.
+  if (state.archers.length) window.addEventListener('load', () => setTimeout(() => focusScoring({smooth:false}), 100), {once:true});
 })();

@@ -77,8 +77,20 @@ Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then 
 - Email results now proposes a shoot-date subject such as `October Club shoot - 18/10/2026`.
 - The mailto fallback sets the exact subject. When sharing an attached CSV through the native iOS/Android share sheet, the title is passed to the receiving app, but some mail apps may ignore it; check the subject before sending.
 
-## v1.4.2 — Shoot types and email improvements
+## v1.4.3 — Shoot types and email improvements
 - New Shoot now prompts for Club Shoot or Casual Shoot and archives the active shoot before clearing archers.
 - Dynamic heading and short date. Shoot type persists in backups and History (legacy shoots default to Club).
 - Participants footer shows only Save Shoot, History, Backup and Restore.
 - Email Results offers a mailto draft with guaranteed subject but manual CSV attachment, or native Share for automatic attachment with an unreliable subject on iOS mail clients.
+
+
+## v1.4.3 changes
+- Email Results now launches the file-sharing sheet directly with its CSV already attached, with no two-choice popup. iOS email apps may ignore the suggested subject.
+- On phones with an existing scorecard, the app initially scrolls to Now Scoring; adding the first archer does likewise. Scoring itself does not trigger automatic scrolling.
+- Gentle native scroll snapping near Now Scoring and reduced root overscroll, without locking access to other sections. iOS browser bounce remains partly browser-controlled.
+
+## v1.4.4 — Clear History
+
+- History includes a Clear History button, disabled when empty.
+- Confirmation identifies how many archived shoots will be deleted.
+- The active shoot and exported JSON backups are unaffected.
