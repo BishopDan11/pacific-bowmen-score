@@ -1,7 +1,8 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.4.1. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.4.2. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
+  const SHOOT_TYPES = ['Club', 'Casual'];
   const HISTORY_KEY = 'pacific-bowmen-history-v1';
   const ROUNDS = 20;
   const ARROWS = 2;
@@ -18,7 +19,7 @@
 
   function blankRounds() { return Array.from({length: ROUNDS}, () => [null, null]); }
   function makeId() { return globalThis.crypto?.randomUUID?.() || `a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
-  function newState() { return {version: 1, shootDate: new Date().toISOString(), archers: [], selectedArcherId: null}; }
+  function newState() { return {version: 1, shootDate: new Date().toISOString(), shootType: 'Club', archers: [], selectedArcherId: null}; }
   function cleanState(value) {
     if (!value || !Array.isArray(value.archers) || value.archers.length > 200) throw Error('Invalid scorecard');
     const seen = new Set();
@@ -37,7 +38,7 @@
       return {id, name, rounds, photo};
     });
     const selectedArcherId = archers.some(a => a.id === value.selectedArcherId) ? value.selectedArcherId : (archers[0]?.id ?? null);
-    return {version: 1, shootDate: Number.isFinite(Date.parse(value.shootDate)) ? value.shootDate : new Date().toISOString(), archers, selectedArcherId};
+    return {version: 1, shootDate: Number.isFinite(Date.parse(value.shootDate)) ? value.shootDate : new Date().toISOString(), shootType: SHOOT_TYPES.includes(value.shootType) ? value.shootType : 'Club', archers, selectedArcherId};
   }
   function readState() {
     try {
@@ -74,6 +75,14 @@
     const capacity = data.archers.length * ROUNDS * ARROWS;
     return {shots, capacity, complete: capacity > 0 && shots === capacity};
   }
+  function shootTitle(data = state) {
+    const date = new Date(data.shootDate);
+    const month = new Intl.DateTimeFormat('en-AU', {month:'long'}).format(date);
+    return (data.shootType === 'Casual') ? 'Casual Shoot' : `${month} Club Shoot`;
+  }
+  function fullShootDate(date) {
+    return new Intl.DateTimeFormat('en-AU', {day:'numeric',month:'long',year:'numeric'}).format(new Date(date));
+  }
   function formattedDate(date) {
     return new Intl.DateTimeFormat('en-AU', {day:'numeric', month:'short', year:'numeric'}).format(new Date(date));
   }
@@ -98,7 +107,7 @@
     const entries = history.map(h => {
       const stats = shootStats(h.data);
       const status = stats.complete ? 'Complete' : `In progress · ${stats.shots}/${stats.capacity} arrows`;
-      return `<div class="history-entry"><div class="history-details"><strong>${esc(formattedDate(h.data.shootDate))}</strong><span>${h.data.archers.length} archers · ${esc(status)}</span></div><div class="history-buttons"><button type="button" class="outline-btn" data-action="view-history" data-id="${esc(h.id)}">View</button><button type="button" class="outline-btn" data-action="export-history" data-id="${esc(h.id)}">Files</button></div></div>`;
+      return `<div class="history-entry"><div class="history-details"><strong>${esc(shootTitle(h.data))}</strong><span>${esc(formattedDate(h.data.shootDate))}</span><span>${h.data.archers.length} archers · ${esc(status)}</span></div><div class="history-buttons"><button type="button" class="outline-btn" data-action="view-history" data-id="${esc(h.id)}">View</button><button type="button" class="outline-btn" data-action="export-history" data-id="${esc(h.id)}">Files</button></div></div>`;
     }).join('');
     showModal('Shoot History', `<div class="history-list"><p>Previous shoots saved on this device. Open an entry to view its results without changing the current shoot. You can also import a JSON shoot from Files.</p>${entries || '<p>No archived shoots yet. Tap Save Shoot, or begin a new shoot to archive the existing scores.</p>'}<button type="button" class="primary-btn" data-action="load-past-shoot">Load from Files</button></div>`);
   }
@@ -109,7 +118,7 @@
       const perRound = a.rounds.map((r,i) => `<span>R${i+1}: ${r.map(v=>v === null?'—':v === 'M'?'Miss':v).join(' / ')} (${roundPoints(r)})</span>`).join('');
       return `<details class="history-archer"><summary><strong>${esc(a.name)}</strong><span>${points(a)} / 800 · ${arrowCount(a)}/40</span></summary><div class="history-rounds">${perRound}</div></details>`;
     }).join('');
-    showModal(`Shoot · ${formattedDate(data.shootDate)}`, `<div class="history-view"><p>Read-only archived results · ${data.archers.length} archers</p>${rows}<div class="history-footer"><button class="outline-btn" type="button" data-action="export-history" data-id="${esc(id)}">Save to Files</button><button class="outline-btn" type="button" data-action="activate-history" data-id="${esc(id)}">Restore for editing</button><button class="outline-btn" type="button" data-action="history">Back to History</button></div></div>`);
+    showModal(`${shootTitle(data)} · ${formattedDate(data.shootDate)}`, `<div class="history-view"><p>Read-only archived results · ${data.archers.length} archers</p>${rows}<div class="history-footer"><button class="outline-btn" type="button" data-action="export-history" data-id="${esc(id)}">Save to Files</button><button class="outline-btn" type="button" data-action="activate-history" data-id="${esc(id)}">Restore for editing</button><button class="outline-btn" type="button" data-action="history">Back to History</button></div></div>`);
   }
   function activateHistory(id) {
     const entry = history.find(h => h.id === id); if (!entry) return;
@@ -259,7 +268,8 @@
     save(); render(); toast('Arrow cleared');
   }
   function render() {
-    $('#session-date').textContent = `Shoot started ${new Intl.DateTimeFormat('en-AU', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(new Date(state.shootDate))}  ·  Scores saved on this device`;
+    $('#shoot-heading').textContent = shootTitle();
+    $('#session-date').textContent = fullShootDate(state.shootDate);
     $('#archer-count').textContent = state.archers.length;
     $('#app').classList.toggle('has-archers', state.archers.length > 0);
     const ranking = ranks();
@@ -318,9 +328,8 @@
   function slugDate() { return new Date(state.shootDate).toLocaleDateString('en-CA', {year:'numeric',month:'2-digit',day:'2-digit'}); }
   function emailSubject() {
     const date = new Date(state.shootDate);
-    const month = new Intl.DateTimeFormat('en-AU', {month: 'long'}).format(date);
-    const day = new Intl.DateTimeFormat('en-AU', {day: '2-digit', month: '2-digit', year: 'numeric'}).format(date);
-    return `${month} Club shoot - ${day}`;
+    const day = new Intl.DateTimeFormat('en-AU', {day:'2-digit',month:'2-digit',year:'numeric'}).format(date);
+    return `${shootTitle()} - ${day}`;
   }
   function makeCSV() {
     const header = ['Shoot Date', 'Archer', 'Round', 'Arrow 1', 'Arrow 2', 'Round Points', 'Running Total', 'Final Total', 'Arrows Scored'];
@@ -340,28 +349,30 @@
     toast('CSV downloaded');
   }
   function emailSummary() {
-    return `Pacific Bowmen — Two-Arrow Shoot\nDate: ${slugDate()}\n20 rounds × 2 arrows | A=20 B=18 C=16 Miss=0 | Max 800\n\n` +
+    return `${shootTitle()}\nDate: ${slugDate()}\n20 rounds × 2 arrows | A=20 B=18 C=16 Miss=0 | Max 800\n\n` +
       ranks().map((a, i) => `${i+1}. ${a.name}: ${points(a)}/800 (${arrowCount(a)}/40 arrows)`).join('\n') +
       '\n\nScores recorded locally using Pacific Bowmen Scorecard.';
   }
-  async function emailResults() {
+  function emailResults() {
     if (!state.archers.length) return toast('Add an archer before emailing results');
-    const file = new File([makeCSV()], `pacific-bowmen-scores-${slugDate()}.csv`, {type: 'text/csv'});
-    if (navigator.share && navigator.canShare?.({files: [file]})) {
-      try {
-        await navigator.share({title: emailSubject(), text: emailSummary(), files: [file]});
-        return;
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
-        console.warn('Sharing CSV was unavailable', error);
-      }
-    }
-    // Mailto cannot attach a file. Download the CSV and open an email with the ranked results.
-    download(file.name, makeCSV(), 'text/csv;charset=utf-8');
+    showModal('Email results', `<div class="email-choices"><p><strong>Subject:</strong> ${esc(emailSubject())}</p><button class="primary-btn" type="button" data-action="email-draft">Email with subject</button><p>Opens an email draft with the correct subject. The CSV downloads separately; attach it manually.</p><button class="outline-btn" type="button" data-action="share-email-csv">Share CSV attachment</button><p>Uses the iPhone Share menu to attach the CSV automatically, but Mail and Outlook may ignore the subject.</p></div>`);
+  }
+  function emailDraft() {
+    const filename = `pacific-bowmen-scores-${slugDate()}.csv`;
+    download(filename, makeCSV(), 'text/csv;charset=utf-8');
     const subject = encodeURIComponent(emailSubject());
-    const body = encodeURIComponent(emailSummary() + '\n\nPlease attach the downloaded CSV file for all round-by-round scores.');
-    toast('CSV downloaded — attach it to your email draft');
+    const body = encodeURIComponent(emailSummary() + `\n\nPlease attach ${filename} (downloaded separately) for all round-by-round scores.`);
+    closeModal();
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+  async function shareEmailCSV() {
+    const file = new File([makeCSV()], `pacific-bowmen-scores-${slugDate()}.csv`, {type:'text/csv'});
+    if (navigator.share && navigator.canShare?.({files:[file]})) {
+      try { await navigator.share({title:emailSubject(),text:emailSummary(),files:[file]}); closeModal(); return; }
+      catch (error) { if (error?.name === 'AbortError') return; console.warn('Unable to share CSV',error); }
+    }
+    toast('CSV sharing unavailable; using email draft');
+    emailDraft();
   }
   function backup() {
     download(`pacific-bowmen-backup-${slugDate()}.json`, JSON.stringify(state, null, 2), 'application/json');
@@ -416,11 +427,19 @@
     save(); closeModal(); render(); toast('Photo removed');
   }
   function newShoot() {
-    if (!confirm('Start a new shoot? Current scores and photos will be saved to Shoot History first, then the active archer list will be cleared.')) return;
+    showModal('Start New Shoot', `<div class="shoot-type-choices"><p>Select the type of shoot. The current shoot will be saved in History before starting fresh.</p><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="Club"><strong>🏆 Club Shoot</strong><span>${esc(new Intl.DateTimeFormat('en-AU',{month:'long'}).format(new Date()))} Club Shoot</span></button><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="Casual"><strong>◎ Casual Shoot</strong><span>Casual Shoot</span></button></div>`);
+  }
+  function startShoot(type) {
+    if (!SHOOT_TYPES.includes(type)) return;
+    if (state.archers.length && !confirm(`Start a new ${type.toLowerCase()} shoot? Current scores and photos will be archived, then all archers cleared.`)) return;
     if (!archiveShoot()) return;
-    state = newState();
+    const next = newState(); next.shootType = type;
+    // Save the replacement before switching the active in-memory session.
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+    catch (error) { toast('Unable to save new shoot. Check device storage.'); return; }
+    state = next;
     activeRound = 0; activeArrow = 0; undo = null;
-    save(); render(); toast('New shoot started');
+    closeModal(); render(); toast(`${shootTitle()} started`);
   }
   function deleteArcher() {
     const archer = selected(); if (!archer) return;
@@ -436,7 +455,7 @@
     <p><strong>3.</strong> After scoring both arrows, the app automatically selects the next archer in the order you added them. After every archer finishes the round, it moves to the next round and starts with Archer 1 again.</p>
     <p><strong>4.</strong> Tap an archer, round or arrow to correct a score. Undo also works after switching archers. Editing an existing score will not automatically move to another archer. Empty arrows are not misses.</p>
     <p><strong>5.</strong> Add an optional photo using the + Photo button. Images stay on the device; a backup includes them.</p>
-    <p><strong>6.</strong> Tap Save Shoot to archive the current shoot, History to review past shoots, Save to Files to share JSON, or Load from Files to import one. New Shoot automatically archives the current shoot before clearing archers.</p><p><strong>7.</strong> Tap Email results to share the CSV as an attachment through your phone's share sheet. If unavailable, a CSV downloads and an email draft opens — attach the downloaded file yourself. Backup/Restore preserves scores and photos.</p>
+    <p><strong>6.</strong> Tap Save Shoot to archive the current shoot, History to review past shoots, Save to Files to share JSON, or Load from Files to import one. New Shoot lets you choose Club or Casual, and automatically archives the current shoot before clearing archers.</p><p><strong>7.</strong> Tap Email results and choose Email with subject (attach the downloaded CSV manually) or Share CSV attachment (the mail app might ignore the subject). Backup/Restore preserves scores and photos.</p>
     <div class="modal-note"><strong>Install on a phone:</strong> Open the hosted HTTPS site in Safari on iPhone, then Share → Add to Home Screen. On Android, open it in Chrome, then choose Install app or Add to Home screen. After the first load, it works offline. Scores stay on this device unless you export a backup.</div></div>`);
   }
   document.addEventListener('click', event => {
@@ -456,6 +475,9 @@
       case 'clear-arrow': clearArrow(); break;
       case 'undo': undoShot(); break;
       case 'new-shoot': newShoot(); break;
+      case 'start-shoot': startShoot(button.dataset.type); break;
+      case 'email-draft': emailDraft(); break;
+      case 'share-email-csv': shareEmailCSV(); break;
       case 'delete-archer': deleteArcher(); break;
       case 'export-csv': exportCSV(); break;
       case 'email-results': emailResults(); break;

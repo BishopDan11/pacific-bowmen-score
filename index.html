@@ -11,7 +11,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <link rel="icon" href="./icons/favicon.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=1.4.1">
+  <link rel="stylesheet" href="./styles.css?v=1.4.2">
   <title>Pacific Bowmen | Two-Arrow Scorecard</title>
 </head>
 <body>
@@ -31,7 +31,7 @@
     </header>
     <main class="main-wrap">
       <div class="page-intro">
-        <div><div class="eyebrow">CLUB SCOREKEEPING</div><h1>Today's shoot <span class="heading-target">↗</span></h1><p id="session-date" class="subtitle"></p></div>
+        <div><div class="eyebrow">CLUB SCOREKEEPING</div><h1><span id="shoot-heading">October Club Shoot</span> <span class="heading-target">↗</span></h1><p id="session-date" class="subtitle"></p></div>
         <div class="rule-chip"><span>20 ROUNDS</span><span class="chip-separator">·</span><span>2 ARROWS</span><span class="chip-separator">·</span><strong>800 MAX</strong></div>
       </div>
       <div id="storage-alert" class="storage-alert" role="alert" hidden>Scores can't be saved in this browser. Try hosting the app over HTTPS and allowing local storage.</div>
@@ -40,11 +40,11 @@
           <div class="panel-header"><div><div class="panel-kicker">PARTICIPANTS</div><h2>Archers <span id="archer-count" class="count-pill">0</span></h2></div><button class="icon-btn" title="Add archer" aria-label="Add archer" data-action="add-archer">+</button></div>
           <div class="add-archer-inline"><form id="quick-add" autocomplete="off"><label class="sr-only" for="quick-name">Archer name</label><input id="quick-name" name="name" maxlength="50" placeholder="Enter archer name" required><button type="submit" aria-label="Add archer">Add</button></form></div>
           <div id="archer-list" class="archer-list" aria-label="Archer leaderboard"></div>
-          <div class="panel-footer"><span class="live-dot"></span> On-device only <span class="footer-spacer"></span><button class="text-button" data-action="export-csv">CSV</button><span class="footer-dot">·</span><button class="text-button" data-action="save-shoot">Save Shoot</button><span class="footer-dot">·</span><button class="text-button" data-action="history">History</button><span class="footer-dot">·</span><button class="text-button" data-action="save-files">Files</button><span class="footer-dot">·</span><button class="text-button" data-action="backup">Backup</button><span class="footer-dot">·</span><button class="text-button" data-action="restore">Restore</button></div>
+          <div class="panel-footer"><button class="text-button" data-action="save-shoot">Save Shoot</button><span class="footer-dot">·</span><button class="text-button" data-action="history">History</button><span class="footer-dot">·</span><button class="text-button" data-action="backup">Backup</button><span class="footer-dot">·</span><button class="text-button" data-action="restore">Restore</button></div>
         </aside>
         <section id="score-panel" class="panel score-panel" aria-live="off"></section>
       </div>
-      <footer class="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.4.1</footer>
+      <footer class="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.4.2</footer>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <input type="file" id="history-file" accept="application/json,.json" hidden>
@@ -58,6 +58,6 @@
       </div>
     </div>
   </div>
-  <script src="./app.js?v=1.4.1" defer></script>
+  <script src="./app.js?v=1.4.2" defer></script>
 </body>
 </html>

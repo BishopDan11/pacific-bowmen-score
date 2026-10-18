@@ -212,3 +212,12 @@ html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 
 /* v1.4: local monthly shoot archive */
 .history-list,.history-view{margin-top:12px}.history-entry{border:1px solid #e3e5ef;border-radius:12px;padding:12px;margin:10px 0;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.history-details{display:flex;flex-direction:column;gap:6px}.history-details span{font-size:12px;color:#697385}.history-buttons,.history-footer{display:flex;gap:7px;flex-wrap:wrap}.history-view .history-archer{border:1px solid #e3e5ef;border-radius:9px;margin:9px 0;padding:10px}.history-archer summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-size:13px}.history-archer summary span{white-space:nowrap}.history-rounds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px;font-size:12px;color:#566278}.history-footer{margin-top:18px}.history-list .outline-btn,.history-view .outline-btn{border:1px solid #d9deea;background:white;border-radius:9px;padding:10px 12px;color:#252c69;font-size:12px;font-weight:700}.history-list .primary-btn{min-height:44px}.panel-footer{flex-wrap:wrap;row-gap:5px}.text-button{min-height:28px}@media(max-width:370px){.history-rounds{grid-template-columns:1fr}}
+
+/* v1.4.2 shoot type selection and email choices */
+.shoot-type-choices,.email-choices{display:grid;gap:10px;margin-top:12px}
+.shoot-type-btn{display:flex;flex-direction:column;align-items:flex-start;gap:5px;width:100%;padding:17px;border:1px solid #dce2f1;border-radius:12px;background:#f8f9ff;color:#202963;text-align:left;cursor:pointer;min-height:79px}
+.shoot-type-btn strong{font-size:16px}.shoot-type-btn span{font-size:13px;color:#637098}
+.shoot-type-btn:active{background:#e9ecfa}
+.email-choices .outline-btn{padding:13px 15px;border:1px solid #dce2f1;background:white;border-radius:10px;font-weight:750;font-size:14px;color:#202963}
+.email-choices .primary-btn{margin:0}.email-choices p{margin:0 0 4px}
+.panel-footer{justify-content:center;flex-wrap:wrap;gap:4px}
