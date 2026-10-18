@@ -57,7 +57,7 @@
 }
 @media(max-width:390px){.brand{gap:8px}.header-btn{padding:8px}.header-btn-strong{font-size:11px}.brand-top{font-size:10px;letter-spacing:.6px}}
 
-/* v1.3.0 — mobile-first scoring. All widths remain within the phone viewport. */
+/* v1.3.1 — mobile-first scoring. All widths remain within the phone viewport. */
 html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 .archer-progress-mobile { display:none; }
 .archer-card > div:nth-child(3), .archer-heading > div:last-child, .score-panel { min-width:0; }
@@ -191,7 +191,7 @@ html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   .score-instruction span:last-child { font-size:11px; }
 }
 
-/* v1.3.0 — keep all scoring controls stationary as labels/status change */
+/* v1.3.1 — keep all scoring controls stationary as labels/status change */
 .arrow-row { align-items:stretch; }
 .arrow-box { box-sizing:border-box; height:100px; min-height:100px; overflow:hidden; }
 .arrow-box > div:first-child { min-width:0; width:100%; }

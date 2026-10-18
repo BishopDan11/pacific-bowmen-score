@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.3.0. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.3.1. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -326,9 +326,8 @@
     save(); closeModal(); render(); toast('Photo removed');
   }
   function newShoot() {
-    if (!confirm('Start a new shoot? This clears every archer’s current scores, but keeps their names. Export or back up this shoot first if you need the results.')) return;
-    for (const archer of state.archers) archer.rounds = blankRounds();
-    state.shootDate = new Date().toISOString(); state.selectedArcherId = state.archers[0]?.id ?? null;
+    if (!confirm('Start a new shoot? This removes ALL current archers, headshots and scores from this device. Export or back up the current shoot first if you want to keep its results.')) return;
+    state = newState();
     activeRound = 0; activeArrow = 0; undo = null;
     save(); render(); toast('New shoot started');
   }
