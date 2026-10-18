@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Two Arrow Scorecard v1.2.0. Scores and photos stay on device. */
+/* Pacific Bowmen - Two Arrow Scorecard v1.3.0. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -111,28 +111,32 @@
   // and so on. Only advance the round once everyone has completed that round.
   // Using insertion order instead of score rank keeps the shooting line stable.
   function advanceAfterPair(archerId, roundIndex) {
-    const currentIndex = state.archers.findIndex(archer => archer.id === archerId);
-    for (let offset = 1; offset < state.archers.length; offset++) {
-      const next = state.archers[(currentIndex + offset) % state.archers.length];
-      if (next.rounds[roundIndex].some(arrow => arrow === null)) {
+    const currentIndex = state.archers.findIndex(a => a.id === archerId);
+    // Finish every archer in the current round before starting the next one.
+    // The last archer's second arrow ALWAYS ends the round.
+    for (let step = 1; step < state.archers.length; step++) {
+      const next = state.archers[(currentIndex + step) % state.archers.length];
+      if (next.rounds[roundIndex].some(score => score === null)) {
         state.selectedArcherId = next.id;
         moveToRound(roundIndex);
-        return next;
+        return {archer: next, roundCompleted: false};
       }
     }
-    // Every archer finished this round: move to the first unfinished round.
-    // Wrap around for older gaps (e.g. if an archer joins partway through).
-    for (let offset = 1; offset < ROUNDS; offset++) {
-      const targetRound = (roundIndex + offset) % ROUNDS;
-      for (const next of state.archers) {
-        if (next.rounds[targetRound].some(arrow => arrow === null)) {
-          state.selectedArcherId = next.id;
-          moveToRound(targetRound);
-          return next;
-        }
+    // This round is complete. Go to archer 1 in the next unfinished round.
+    // Normally that is roundIndex + 1; older unfilled gaps are still recoverable.
+    for (let step = 1; step < ROUNDS; step++) {
+      const targetRound = (roundIndex + step) % ROUNDS;
+      const next = state.archers.find(a => a.rounds[targetRound].some(score => score === null));
+      if (next) {
+        state.selectedArcherId = next.id;
+        moveToRound(targetRound);
+        return {archer: next, roundCompleted: true};
       }
     }
-    return null;
+    // All arrows in the shoot have been entered. Leave the last arrow visible.
+    activeRound = ROUNDS - 1;
+    activeArrow = 1;
+    return {archer: null, roundCompleted: true, shootCompleted: true};
   }
   function recordScore(letter) {
     const archer = selected();
@@ -142,17 +146,17 @@
     undo = {archerId: archer.id, round: activeRound, arrow: activeArrow, value: oldValue};
     archer.rounds[activeRound][activeArrow] = letter;
     const completed = archer.rounds[activeRound].every(v => v !== null);
-    let next = null;
+    let advance = null;
     if (wasEmpty && completed) {
-      next = advanceAfterPair(archer.id, activeRound);
-      if (!next) activeArrow = 1; // entire shoot completed
+      advance = advanceAfterPair(archer.id, activeRound);
     } else if (activeArrow === 0 && wasEmpty) {
       activeArrow = 1;
     }
     // Edits to previously scored arrows do not unexpectedly change archer.
     save(); render();
-    if (next) toast(`Next: ${next.name} · Round ${activeRound + 1}`);
-    else if (state.archers.every(a => arrowCount(a) === ROUNDS * ARROWS)) toast('Shoot complete — all archers have finished!');
+    if (advance?.shootCompleted) toast('Shoot complete — all 20 rounds finished!');
+    else if (advance?.roundCompleted) toast(`Round complete! Starting Round ${activeRound + 1}`);
+    else if (advance?.archer) toast(`Next: ${advance.archer.name} · Round ${activeRound + 1}`);
   }
   function undoShot() {
     if (!undo) return;
@@ -202,12 +206,13 @@
       <div class="arrow-row">${currentRound.map((letter, index) => `<button type="button" data-action="select-arrow" data-index="${index}" class="arrow-box ${index === activeArrow ? 'active' : ''}" aria-pressed="${index === activeArrow}"><div><div class="arrow-title">ARROW ${index+1}</div><div class="arrow-value ${letter === null ? 'blank' : ''}">${letter === null ? 'Not scored' : letter === 'M' ? 'Miss' : letter}</div></div><div class="arrow-score ${letter === null ? 'blank' : ''}">${letter === null ? '—' : `${SCORES[letter]} pts`}</div></button>`).join('')}</div>
       <div class="score-instruction"><span>${esc(archer.name)} · <strong>ARROW ${activeArrow+1}</strong></span><span>Tap to score</span></div>
       <div class="score-choices"><button class="choice choice-a" type="button" data-action="score" data-letter="A"><span class="choice-letter">A</span><span class="choice-points">20 pts</span></button><button class="choice choice-b" type="button" data-action="score" data-letter="B"><span class="choice-letter">B</span><span class="choice-points">18 pts</span></button><button class="choice choice-c" type="button" data-action="score" data-letter="C"><span class="choice-letter">C</span><span class="choice-points">16 pts</span></button><button class="choice choice-m" type="button" data-action="score" data-letter="M"><span class="choice-letter">Miss</span><span class="choice-points">0 pts</span></button></div>
-      <div class="score-actions"><span class="round-score">Round score: <strong>${roundSum} / 40</strong>${currentRound.some(v => v === null) ? ' (incomplete)' : ''}</span><div><button class="clear-btn" type="button" data-action="undo" ${undo ? '' : 'disabled'}>Undo</button><button class="clear-btn" type="button" data-action="clear-arrow" ${currentRound[activeArrow] === null ? 'disabled' : ''}>Clear arrow</button></div></div>
+      <div class="score-actions"><span class="round-score">Round score: <strong>${roundSum} / 40</strong><span class="round-status">${currentRound.some(v => v === null) ? 'Incomplete' : 'Complete'}</span></span><div><button class="clear-btn" type="button" data-action="undo" ${undo ? '' : 'disabled'}>Undo</button><button class="clear-btn" type="button" data-action="clear-arrow" ${currentRound[activeArrow] === null ? 'disabled' : ''}>Clear arrow</button></div></div>
       <div class="section-divider"></div><div class="rounds-section-head"><h3>All 20 rounds</h3><span>Select any round to edit</span></div>
       <div class="rounds-grid">${archer.rounds.map((r, i) => {
         const shots = r.filter(v => v !== null).length;
         return `<button type="button" data-action="select-round" data-index="${i}" class="round-cell ${i === activeRound ? 'is-selected' : ''} ${shots === 2 ? 'is-complete' : shots === 1 ? 'is-partial' : ''}" aria-label="Round ${i+1}: ${shots} arrows entered, ${roundPoints(r)} points" aria-pressed="${i === activeRound}"><span class="round-id">R${String(i+1).padStart(2,'0')}</span><span class="round-total ${!shots ? 'empty' : ''}">${shots === 0 ? '—' : `${roundPoints(r)}${shots === 1 ? '*' : ''}`}</span></button>`;
       }).join('')}</div>
+      ${state.archers.length && state.archers.every(a => arrowCount(a) === ROUNDS * ARROWS) ? `<div class="completed-banner">✓ Shoot complete — all 20 rounds and all archers finished. Final results are ready to export.</div>` : ''}
       ${count === 40 ? `<div class="completed-banner">✓ ${esc(archer.name)} has completed all 40 arrows — final score ${total} / 800.</div>` : ''}</div>`;
   }
   function showModal(title, html) {

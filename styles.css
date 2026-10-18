@@ -57,7 +57,7 @@
 }
 @media(max-width:390px){.brand{gap:8px}.header-btn{padding:8px}.header-btn-strong{font-size:11px}.brand-top{font-size:10px;letter-spacing:.6px}}
 
-/* v1.2.0 — mobile-first scoring. All widths remain within the phone viewport. */
+/* v1.3.0 — mobile-first scoring. All widths remain within the phone viewport. */
 html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 .archer-progress-mobile { display:none; }
 .archer-card > div:nth-child(3), .archer-heading > div:last-child, .score-panel { min-width:0; }
@@ -190,3 +190,22 @@ html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   .score-instruction { font-size:13px; }
   .score-instruction span:last-child { font-size:11px; }
 }
+
+/* v1.3.0 — keep all scoring controls stationary as labels/status change */
+.arrow-row { align-items:stretch; }
+.arrow-box { box-sizing:border-box; height:100px; min-height:100px; overflow:hidden; }
+.arrow-box > div:first-child { min-width:0; width:100%; }
+.arrow-value { min-height:32px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.arrow-value.blank { font-size:clamp(14px,4vw,17px); line-height:32px; }
+.score-choices { grid-auto-rows:94px; }
+.choice { box-sizing:border-box; height:94px; min-height:94px; width:100%; padding:8px 4px; transition:none; }
+.choice:active { transform:none; filter:brightness(.96); }
+.choice-letter, .choice-points { display:block; line-height:1.15; white-space:nowrap; }
+.score-actions { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; min-height:48px; align-items:center; }
+.round-score { display:flex; flex-direction:column; justify-content:center; min-width:0; font-variant-numeric:tabular-nums; line-height:1.3; }
+.round-status { display:block; font-size:11px; min-height:15px; color:#819186; }
+.score-actions > div { display:flex; align-items:center; justify-content:flex-end; gap:3px; white-space:nowrap; }
+.clear-btn { min-width:56px; height:42px; box-sizing:border-box; white-space:nowrap; padding:8px; }
+.clear-btn:last-child { min-width:93px; }
+@media(min-width:691px) { .score-choices { grid-auto-rows:78px; } .choice { height:78px; min-height:78px; } }
+@media(max-width:359px) { .arrow-box { height:100px; } .clear-btn { min-width:51px; padding:6px; } .clear-btn:last-child { min-width:82px; } }
