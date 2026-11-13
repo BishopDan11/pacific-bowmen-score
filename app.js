@@ -1,4 +1,4 @@
-/* Pacific Bowmen - Scorecard v1.5.0. Scores and photos stay on device. */
+/* Pacific Bowmen - Scorecard v1.5.1. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
@@ -157,22 +157,25 @@
   function viewScorecard(archerId, shootId = null) {
     const data = shootId ? history.find(h => h.id === shootId)?.data : state;
     const archer = data?.archers.find(a=>a.id===archerId);
-    if(!archer) return toast('Scorecard not found');
-    const count=arrowLimit(data), running=Array(count).fill(0);
-    const rows=archer.rounds.map((round,i)=>{
-      const cols=round.map((v,j)=>{
-        const skip=isSkipped(round,j,data);
-        if(!skip && v!==null) running[j]+=valueFor(v,j,data);
-        const label=skip?'Not shot':v===null?'—':v==='M'?'Miss':v;
-        const pts=skip||v===null?'':` (${valueFor(v,j,data)})`;
-        return `<td><span class="scorecard-mark">${esc(label)}${pts}</span><span class="scorecard-running">${running[j]}</span></td>`;
+    if (!archer) return toast('Scorecard not found');
+    const count=arrowLimit(data);
+    let running=0;
+    const arrowTotals=Array(count).fill(0);
+    const rows=archer.rounds.map((target,i)=>{
+      let targetTotal=0;
+      const cols=target.map((mark,j)=>{
+        const skip=isSkipped(target,j,data);
+        const val=(skip||mark===null)?0:valueFor(mark,j,data);
+        targetTotal+=val; arrowTotals[j]+=val;
+        const label=skip?'—':mark===null?'—':mark==='M'?'Miss':mark;
+        return `<td class="scorecard-arrow ${skip?'scorecard-unshot':''}">${esc(label)}</td>`;
       }).join('');
-      return `<tr><th scope="row">T${String(i+1).padStart(2,'0')}</th>${cols}</tr>`;
+      running+=targetTotal;
+      return `<tr><th scope="row">${String(i+1).padStart(2,'0')}</th>${cols}<td class="scorecard-points">${targetTotal}</td><td class="scorecard-cumulative">${running}</td></tr>`;
     }).join('');
-    const sums=Array(count).fill(0);
-    for(const r of archer.rounds) r.forEach((v,i)=>{if(!isSkipped(r,i,data) && v!==null) sums[i]+=valueFor(v,i,data);});
     const photo=archer.photo?`<img class="scorecard-photo" src="${archer.photo}" alt="">`:'';
-    showModal('Individual Scorecard', `<div class="scorecard-detail"><div class="scorecard-summary">${photo}<div><strong>${esc(archer.name)}</strong><p>${esc(shootTitle(data))} · ${esc(fullShootDate(data.shootDate))}</p><p>${esc(scorecardFormat(data))}</p></div></div><div class="scorecard-total">${points(archer,data)} <small>/ ${maxScore(data)}</small></div><div class="scorecard-scroll"><table class="scorecard-table"><thead><tr><th>Target</th>${Array.from({length:count},(_,i)=>`<th>Arrow ${i+1}<small>Score / running</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><th>Total</th>${sums.map(s=>`<td>${s}</td>`).join('')}</tr></tfoot></table></div><div class="scorecard-total-footer">Grand total: ${points(archer,data)} / ${maxScore(data)}</div><button type="button" class="primary-btn" data-action="share-scorecard" data-archer="${esc(archer.id)}" ${shootId?`data-shoot="${esc(shootId)}"`:''}>Email / Share PDF</button><button type="button" class="outline-btn scorecard-back" data-action="view-scorecards" ${shootId?`data-shoot="${esc(shootId)}"`:''}>All archers</button></div>`);
+    const headers=Array.from({length:count},(_,i)=>`<th scope="col">Arrow ${i+1}</th>`).join('');
+    showModal('Individual Scorecard', `<div class="scorecard-detail"><div class="scorecard-top"><div class="scorecard-summary">${photo}<div><strong>${esc(archer.name)}</strong><p>${esc(shootTitle(data))} · ${esc(fullShootDate(data.shootDate))}</p><p>${esc(scorecardFormat(data))}</p></div></div><div class="scorecard-total">${points(archer,data)} <small>/ ${maxScore(data)}</small><span>Final score</span></div></div><div class="scorecard-scroll"><table class="scorecard-table scorecard-compact"><thead><tr><th scope="col">Target</th>${headers}<th scope="col">Points</th><th scope="col">Running</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th scope="row">Total</th>${arrowTotals.map(v=>`<td>${v}</td>`).join('')}<td>${points(archer,data)}</td><td>${points(archer,data)}</td></tr></tfoot></table></div><div class="scorecard-actions"><button type="button" class="primary-btn" data-action="share-scorecard" data-archer="${esc(archer.id)}" ${shootId?`data-shoot="${esc(shootId)}"`:''}>Email / Share PDF</button><button type="button" class="outline-btn scorecard-back" data-action="view-scorecards" ${shootId?`data-shoot="${esc(shootId)}"`:''}>All archers</button></div></div>`);
   }
   function shareScorecardPDF(archerId, shootId = null) {
     const data = shootId ? history.find(h => h.id === shootId)?.data : state;
@@ -365,7 +368,7 @@
     $('#archer-count').textContent = state.archers.length;
     $('#format-arrows').textContent = `${arrowLimit()} ARROWS`;
     $('#format-max').textContent = `${maxScore()} MAX`;
-    $('#page-footer').textContent = `Pacific Bowmen · ${state.format === 'ABA3' ? 'ABA 3-arrow · stop at first hit' : state.format === 'PB1' ? '1-arrow · A 20 · B 18 · C 16 · Miss 0' : '2-arrow · both arrows count equally'} · v1.5.0`;
+    $('#page-footer').textContent = `Pacific Bowmen · ${state.format === 'ABA3' ? 'ABA 3-arrow · stop at first hit' : state.format === 'PB1' ? '1-arrow · A 20 · B 18 · C 16 · Miss 0' : '2-arrow · both arrows count equally'} · v1.5.1`;
     $('#app').classList.toggle('has-archers', state.archers.length > 0);
     const ranking = ranks();
     const position = new Map(ranking.map((archer, i) => [archer.id, i + 1]));
@@ -546,7 +549,17 @@
     save(); render(); toast('Archer removed');
   }
   function openHelp() {
-    showModal('How scoring works', `<div class="help-steps"><p><strong>1.</strong> Choose Club or Casual Shoot, then 1-arrow Pacific Bowmen, 2-arrow Pacific Bowmen or 3-arrow ABA.</p><p><strong>2.</strong> Each shoot is one round of 20 targets. Pacific Bowmen formats score A=20, B=18, C=16, Miss=0; both arrows count in 2-arrow mode. ABA scores diminish by arrow and stops after the first hit.</p><p><strong>3.</strong> Add your archers and score in order. The app moves to the next archer, then the next target automatically.</p><p><strong>4.</strong> To correct an earlier target, hold its target tile for one second (or right-click on desktop). Previous/next target buttons also require a hold. Tap an arrow to edit it and use Undo for corrections.</p><p><strong>5.</strong> At completion, View Scorecards shows a read-only card for each archer with a Share PDF option. Past cards are also available from History.</p><p><strong>6.</strong> Save Shoot and Backup keep scores and optional photos. Email results shares CSV. The Share PDF option uses the iPhone Share menu where supported.</p><div class="modal-note">Scores are stored only on this device unless exported. Keep backups to protect your records.</div></div>`);
+    const sections = [
+      ['Getting started', `<p><strong>1.</strong> Tap <b>New Shoot</b>, then choose <b>Club Shoot</b> or <b>Casual Shoot</b>. Club shoots are named for the month; both use the same scoring options.</p><p><strong>2.</strong> Pick the scoring format: 1-arrow Pacific Bowmen, 2-arrow Pacific Bowmen, or 3-arrow ABA. Every shoot contains <b>one round of 20 targets</b>.</p><p><strong>3.</strong> Add the 3–4 archers in your team's shooting order. Optional photos help distinguish archers. Each scorer maintains their own scorecard.</p>`],
+      ['Scoring formats and why they differ', `<p><b>Pacific Bowmen 1-arrow:</b> one arrow per target. A=20, B=18, C=16, Miss=0. Maximum <b>400</b>.</p><p><b>Pacific Bowmen 2-arrow:</b> two arrows at every target; both count equally using 20/18/16/0. Example: A then C = 20 + 16 = <b>36</b>. Maximum <b>800</b>.</p><p><b>ABA 3-arrow:</b> a first-hit format. A/B/C score <b>20/18/16</b> on Arrow 1, <b>14/12/10</b> on Arrow 2 and <b>8/6/4</b> on Arrow 3. A miss scores 0. Once an arrow scores A, B or C, stop shooting that target; the later arrows are <b>not shot</b>. Maximum <b>400</b>.</p><p>The lower value for later ABA arrows rewards hitting earlier. These are alternative formats, not three arrows to be totalled in the same way as the Pacific Bowmen 2-arrow round.</p><p><b>Example:</b> Miss → B → not shot = <b>12 points</b> on that ABA target. Three misses = <b>0</b>.</p>`],
+      ['Scoring a team', `<p>Score all required arrows for Archer 1, then Archer 2, and so on. After the last archer finishes a target, the app advances to the next target automatically.</p><p>On the 1-arrow format, any entry completes the archer's turn. In the 2-arrow format, enter Arrow 1 then Arrow 2. In ABA, a scoring hit ends that archer's turn immediately, or a third miss ends it.</p><p>The progress bar, completed target tiles and score totals show how far each archer has progressed. Do not confuse the <b>target score</b> with the <b>running total</b> across all targets.</p>`],
+      ['Corrections and independent verification', `<p>To avoid accidental changes, <b>press and hold a target tile for about one second</b> to return to it. Previous/next target controls also require a hold. On desktop, you can right-click a target.</p><p>Tap a specific Arrow box to select it for correction; use <b>Undo</b> to reverse the latest entry, or <b>Clear arrow</b> to remove an incorrect entry. Review the target carefully before resuming automatic scoring.</p><p>For two-scorer club verification, each scorer records independently and compares their final scorecards or exported results. <b>This version does not synchronise or automatically reconcile two devices.</b> Resolve any disagreement against the recorded arrows before submitting results.</p>`],
+      ['Scorecards and PDF results', `<p>Once all archers have completed all 20 targets, select <b>View Scorecards</b>. Pick an archer to see one row per target, their arrow results, target points and cumulative running total.</p><p><b>Points</b> is the sum for that target. <b>Running</b> is the total earned from Target 1 through that target. The bottom row shows final arrow totals and the overall score.</p><p>Tap <b>Email / Share PDF</b> to generate an A4 PDF locally. On compatible iPhones the system Share menu can attach the PDF automatically to Mail or Outlook. If file sharing is unavailable, download the PDF and attach it from Files. <b>Email Results</b> exports the whole team's scores as CSV.</p>`],
+      ['History, backup and restore', `<p><b>Save Shoot:</b> copy the current shoot into local History. <b>New Shoot:</b> archives an existing populated shoot before clearing archers and scores. <b>History:</b> view previous shoots read-only, open scorecards, and restore a historical shoot for editing after confirmation.</p><p><b>Backup:</b> export a JSON copy of the current scores and optional photos. <b>Restore:</b> load a backup. For monthly records, save the exported file in iPhone Files or iCloud Drive and share it with the other scorer if required.</p><p><b>Clear History</b> permanently removes locally archived shoots after confirmation; it does not remove external JSON backups or the current active shoot.</p>`],
+      ['Install, offline use and privacy', `<p>Open the hosted scoring site and use <b>Add to Home Screen</b> on iPhone or Android. After the first successful load the app can score offline; sharing/email may require connectivity.</p><p>Scores and photos are held in <b>this browser or installed app's local storage</b>, not on GitHub. Chrome, Safari and the Home Screen app can have separate data. Do not assume a shoot entered in one is visible in another.</p><p>The app does not need an account. Avoid deleting the Home Screen app or clearing website data until scores and History are backed up to JSON files.</p>`],
+      ['Troubleshooting', `<p><b>Old version showing?</b> Refresh the site after GitHub Pages deploys and fully close/reopen the Home Screen app; its offline cache may need to update.</p><p><b>Can't see saved scores?</b> Check whether you opened the app in another browser or Home Screen installation. Use Backup/Restore rather than clearing website data.</p><p><b>Email has no subject?</b> iOS mail applications can override subjects supplied via file sharing. The PDF/CSV attachment is the important part; check recipients and subject before sending.</p><p><b>App scrolls oddly?</b> Close and reopen the installed app after updating; avoid removing it while unexported scores remain. If a PDF won't open in Share, use the downloaded PDF in Files.</p>`]
+    ];
+    showModal('Help Centre', `<div class="help-centre"><p class="help-intro">A practical guide to scoring, scoring rules, reviewing results and safeguarding shoot records.</p>${sections.map(([heading,body],i)=>`<details class="help-topic" ${i===0?'open':''}><summary>${esc(heading)}</summary><div class="help-topic-body">${body}</div></details>`).join('')}<div class="modal-note">All scoring formats contain one round with 20 targets. The app stores scores locally unless you export them.</div></div>`);
   }
   // Target selection is intentionally hard to trigger accidentally.
   // A press must stay within 12px for 850ms. Desktop right-click is also supported.

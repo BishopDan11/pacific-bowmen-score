@@ -292,3 +292,46 @@ body { background: #f4f5fb; }
 @media(max-width:690px){.scorecard-launch{width:100%;margin-top:5px;}}
 
 .arrow-row.one-arrow{grid-template-columns:1fr;}
+
+/* v1.5.1: compact scorecards and sectional Help Centre */
+.modal:has(.scorecard-detail),.modal:has(.help-centre){width:min(94vw,760px);max-width:760px;max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;}
+.scorecard-detail{padding-top:10px;}
+.scorecard-top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:3px 0 13px;}
+.scorecard-summary{min-width:0;flex:1;}
+.scorecard-summary>div{min-width:0;}
+.scorecard-summary p{overflow-wrap:anywhere;}
+.scorecard-total{padding:0;text-align:right;white-space:nowrap;font-size:clamp(19px,3vw,28px);}
+.scorecard-total small{font-size:13px;}
+.scorecard-total span{display:block;font-size:10px;line-height:1.4;color:#6f7b99;font-weight:600;}
+.scorecard-scroll{overflow-x:auto;max-width:100%;border:1px solid #dde2f4;border-radius:9px;}
+.scorecard-table.scorecard-compact{table-layout:fixed;width:100%;min-width:0;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;}
+.scorecard-compact thead th{font-size:11px;padding:10px 4px;text-align:center;white-space:normal;}
+.scorecard-compact tbody th,.scorecard-compact tbody td,.scorecard-compact tfoot th,.scorecard-compact tfoot td{text-align:center;padding:6px 4px;white-space:nowrap;line-height:1.25;}
+.scorecard-compact tbody th{font-weight:700;}
+.scorecard-compact .scorecard-arrow{font-weight:650;}
+.scorecard-compact .scorecard-unshot{color:#a4adc1;}
+.scorecard-compact .scorecard-points{color:#47547c;}
+.scorecard-compact .scorecard-cumulative{font-weight:800;color:#171f6d;background:rgba(27,38,123,.035);}
+.scorecard-compact tfoot{background:#e8edff;}
+.scorecard-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px;}
+.scorecard-actions .primary-btn,.scorecard-actions .scorecard-back{margin:0;flex:1;min-width:150px;}
+.help-intro{margin-top:13px;}
+.help-topic{border:1px solid #dfe4f2;border-radius:10px;margin:9px 0;overflow:hidden;}
+.help-topic summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:14px;color:#1b267b;font-weight:750;display:flex;justify-content:space-between;gap:10px;}
+.help-topic summary::-webkit-details-marker{display:none;}
+.help-topic summary::after{content:'+';font-size:20px;line-height:1;color:#64759a;}
+.help-topic[open] summary::after{content:'−';}
+.help-topic[open] summary{background:#f1f4ff;}
+.help-topic-body{padding:1px 16px 13px;}
+.help-topic-body p{margin:11px 0;}
+@media(max-width:480px){
+ .modal:has(.scorecard-detail),.modal:has(.help-centre){width:calc(100vw - 18px);max-height:calc(100dvh - 20px);padding:13px;border-radius:14px;}
+ .scorecard-top{align-items:flex-start;gap:8px;}
+ .scorecard-summary strong{font-size:15px;}
+ .scorecard-summary p{font-size:10px;}
+ .scorecard-total{font-size:19px;}
+ .scorecard-total small{font-size:11px;}
+ .scorecard-compact thead th{font-size:9px;padding:9px 2px;}
+ .scorecard-compact tbody th,.scorecard-compact tbody td,.scorecard-compact tfoot th,.scorecard-compact tfoot td{font-size:11px;padding:6px 2px;}
+ .scorecard-actions .primary-btn,.scorecard-actions .scorecard-back{min-width:100%;}
+}

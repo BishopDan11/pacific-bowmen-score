@@ -32,30 +32,41 @@
     text(40,646,'ARCHER',8,true,'grey'); text(40,623,archer.name.slice(0,48),18,true);
     const score = archer.rounds.reduce((sum,r)=>sum+r.reduce((n,v,i)=>n+arrowPoints(v,i),0),0);
     text(365,648,'FINAL SCORE',8,true,'grey'); text(365,620,`${score} / ${max}`,23,true);
+    // Consistent compact scorecard: one row per target, with each arrow, target points and cumulative total.
+    const layouts = columns===1
+      ? {arrowX:[155],pointsX:377,runningX:463}
+      : columns===2
+      ? {arrowX:[140,250],pointsX:377,runningX:463}
+      : {arrowX:[116,204,292],pointsX:398,runningX:475};
     rect(39,577,517,28,'navy');
-    const xs = columns === 1 ? [156] : columns===2 ? [156,301] : [145,260,375];
-    text(49,586,'TARGET',9,true,'white');
-    for(let i=0;i<columns;i++) text(xs[i],586,`ARROW ${i+1} / RUNNING`,8,true,'white');
+    text(48,586,'TARGET',8,true,'white');
+    for(let i=0;i<columns;i++) text(layouts.arrowX[i],586,`ARROW ${i+1}`,8,true,'white');
+    text(layouts.pointsX,586,'POINTS',8,true,'white');
+    text(layouts.runningX,586,'RUNNING',8,true,'white');
     const sums=Array(columns).fill(0);
+    let cumulative=0;
     for(let t=0;t<20;t++){
-      const r=archer.rounds[t];
-      const y=557-t*21;
+      const r=archer.rounds[t], y=557-t*21;
       if(t%2===0) rect(39,y-5,517,21,'pale');
       text(49,y+2,fmt(t+1),9,true);
+      let targetTotal=0;
       for(let a=0;a<columns;a++){
-        const v=r[a];
-        const skippedArrow=skipped(r,a);
-        const value=skippedArrow?0:arrowPoints(v,a);
-        sums[a]+=value;
-        const mark=skippedArrow?'--':v===null?'--':v==='M'?'Miss':v;
-        const label=skippedArrow?'Not shot':v===null?'--':`${mark} (${value})`;
-        text(xs[a],y+2,`${label}    ${sums[a]}`,9, false, v==='M'?'grey':'navy');
+        const v=r[a], skip=skipped(r,a);
+        const value=skip?0:arrowPoints(v,a);
+        sums[a]+=value; targetTotal+=value;
+        const label=skip?'--':v===null?'--':v==='M'?'Miss':v;
+        text(layouts.arrowX[a],y+2,label,9,v!==null&&!skip,v==='M'?'grey':'navy');
       }
+      cumulative+=targetTotal;
+      text(layouts.pointsX,y+2,String(targetTotal),9,false);
+      text(layouts.runningX,y+2,String(cumulative),9,true);
       line(39,y-5,556,y-5);
     }
     rect(39,102,517,32,'pale');
-    text(49,113,'ARROW TOTALS',9,true);
-    for(let i=0;i<columns;i++) text(xs[i],113,String(sums[i]),12,true);
+    text(49,113,'TOTAL',9,true);
+    for(let i=0;i<columns;i++) text(layouts.arrowX[i],113,String(sums[i]),11,true);
+    text(layouts.pointsX,113,String(score),11,true);
+    text(layouts.runningX,113,String(score),11,true);
     text(40,76,`GRAND TOTAL: ${score} / ${max}`,17,true);
     text(40,52,'Pacific Bowmen  |  20-target round  |  Scores recorded by the club scorecard app',8,false,'grey');
     text(489,52,'Page 1 of 1',8,false,'grey');

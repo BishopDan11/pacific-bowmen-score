@@ -1,4 +1,4 @@
-# Pacific Bowmen — Archery Scorecard v1.5.0
+# Pacific Bowmen — Archery Scorecard v1.5.1
 
 An offline-first, installable web app for Pacific Bowmen. All scores, optional archer photos and archived shoots remain on the user's device. No accounts, database, login or build process are required.
 
@@ -14,7 +14,7 @@ All formats are **one round with 20 targets**:
 
 Select Club or Casual Shoot, then the scoring format. The app advances through archers, then targets, automatically.
 
-## Changes in v1.5.0
+## Changes in v1.5.1
 
 - New **1-arrow Pacific Bowmen** format.
 - The interface and CSV exports now use **target** terminology instead of incorrectly referring to 20 rounds.
