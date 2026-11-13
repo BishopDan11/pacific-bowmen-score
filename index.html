@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#141c70">
-  <meta name="description" content="Pacific Bowmen two-arrow round scorecard. Score 20 rounds for multiple archers, even offline.">
+  <meta name="description" content="Pacific Bowmen archery scorecard. Score 20 targets for multiple archers, even offline.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PB Scores">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <link rel="icon" href="./icons/favicon.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=1.4.8">
-  <title>Pacific Bowmen | Two-Arrow Scorecard</title>
+  <link rel="stylesheet" href="./styles.css?v=1.5.0">
+  <title>Pacific Bowmen | Archery Scorecard</title>
 </head>
 <body>
   <div id="app">
@@ -32,7 +32,7 @@
     <main class="main-wrap">
       <div class="page-intro">
         <div><div class="eyebrow">CLUB SCOREKEEPING</div><h1><span id="shoot-heading">October Club Shoot</span> <span class="heading-target">↗</span></h1><p id="session-date" class="subtitle"></p></div>
-        <div class="rule-chip"><span>20 ROUNDS</span><span class="chip-separator">·</span><span id="format-arrows">2 ARROWS</span><span class="chip-separator">·</span><strong id="format-max">800 MAX</strong></div>
+        <div class="rule-chip"><span>20 TARGETS</span><span class="chip-separator">·</span><span id="format-arrows">2 ARROWS</span><span class="chip-separator">·</span><strong id="format-max">800 MAX</strong></div>
       </div>
       <div id="storage-alert" class="storage-alert" role="alert" hidden>Scores can't be saved in this browser. Try hosting the app over HTTPS and allowing local storage.</div>
       <div class="app-grid">
@@ -44,7 +44,7 @@
         </aside>
         <section id="score-panel" class="panel score-panel" aria-live="off"></section>
       </div>
-      <footer class="page-footer" id="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.4.9</footer>
+      <footer class="page-footer" id="page-footer">Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.5.0</footer>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <input type="file" id="history-file" accept="application/json,.json" hidden>
@@ -58,6 +58,7 @@
       </div>
     </div>
   </div>
-  <script src="./app.js?v=1.4.8" defer></script>
+  <script src="./pdf.js?v=1.5.0" defer></script>
+  <script src="./app.js?v=1.5.0" defer></script>
 </body>
 </html>

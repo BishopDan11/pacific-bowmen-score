@@ -1,7 +1,7 @@
 {
-  "name": "Pacific Bowmen Two-Arrow Scorecard",
+  "name": "Pacific Bowmen Archery Scorecard",
   "short_name": "PB Scores",
-  "description": "Offline two-arrow scoring for 20-round club shoots, with multiple archers, local photos and email export.",
+  "description": "Offline 1-, 2- and 3-arrow scoring for 20-target club shoots, with multiple archers, local photos and email export.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

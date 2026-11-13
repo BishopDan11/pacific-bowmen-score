@@ -261,3 +261,34 @@ body { background: #f4f5fb; }
 .arrow-row.three-arrows .arrow-value { font-size:clamp(15px,4.3vw,25px); overflow-wrap:anywhere; }
 .arrow-row.three-arrows .arrow-score { font-size:clamp(12px,3vw,17px); }
 .arrow-box.skipped { opacity:.55; cursor:default; background:#f3f4f9; }
+
+/* v1.5.0 target protection and per-archer scorecards */
+.round-cell,.round-nav button { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:pan-y; }
+.round-cell:active,.round-nav button:active { outline:2px solid #e9bd27;outline-offset:1px; }
+.scorecard-launch{background:#1b267b;border:0;border-radius:9px;padding:10px 14px;color:white;font-weight:750;cursor:pointer;margin-left:auto;white-space:nowrap;}
+.completed-banner{flex-wrap:wrap;}
+.scorecard-picker-list{display:flex;flex-direction:column;gap:9px;margin-top:14px;}
+.scorecard-picker{border:1px solid #dfe3f6;background:#f7f8fe;border-radius:11px;padding:15px;display:flex;justify-content:space-between;gap:10px;color:#171f6d;font-size:15px;cursor:pointer;}
+.scorecard-detail{padding-top:14px;}
+.scorecard-summary{display:flex;gap:12px;align-items:center;}
+.scorecard-summary strong{font-size:18px;color:#171f6d;}
+.scorecard-summary p{font-size:12px;margin:3px 0;color:#6e7793;}
+.scorecard-photo{width:56px;height:56px;object-fit:cover;border-radius:50%;}
+.scorecard-total{font-size:29px;color:#171f6d;font-weight:850;padding:13px 0;}
+.scorecard-total small{font-size:15px;color:#8389a0;}
+.scorecard-scroll{overflow-x:auto;max-width:100%;}
+.scorecard-table{border-collapse:collapse;width:100%;font-size:12px;text-align:left;color:#202d65;}
+.scorecard-table thead{background:#181e71;color:#fff;}
+.scorecard-table thead th{padding:10px 6px;font-size:11px;white-space:nowrap;}
+.scorecard-table thead small{display:block;font-weight:normal;opacity:.8;font-size:9px;}
+.scorecard-table tbody th,.scorecard-table td{padding:8px 6px;border-bottom:1px solid #e8eaf3;white-space:nowrap;}
+.scorecard-table tbody tr:nth-child(even){background:#f5f6fc;}
+.scorecard-table tfoot{background:#edf0ff;font-weight:bold;}
+.scorecard-mark,.scorecard-running{display:block;}
+.scorecard-running{color:#727e9e;font-size:10px;margin-top:2px;}
+.scorecard-total-footer{text-align:right;font-weight:800;font-size:16px;color:#171f6d;margin-top:14px;}
+.scorecard-back{margin-top:12px;width:100%;}
+@media(min-width:640px){.modal:has(.scorecard-detail){max-width:620px;}}
+@media(max-width:690px){.scorecard-launch{width:100%;margin-top:5px;}}
+
+.arrow-row.one-arrow{grid-template-columns:1fr;}

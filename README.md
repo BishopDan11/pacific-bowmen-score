@@ -1,124 +1,41 @@
-# Pacific Bowmen — Two-Arrow Scorecard v1.3.1
+# Pacific Bowmen — Archery Scorecard v1.5.0
 
-A mobile-friendly, locally stored, installable web app (PWA) for iPhone, iPad and Android. There are **no accounts, database, login or external scoring service**, and no build step.
+An offline-first, installable web app for Pacific Bowmen. All scores, optional archer photos and archived shoots remain on the user's device. No accounts, database, login or build process are required.
 
-## Scoring
-- 20 rounds per archer, with 2 arrows per round (40 arrows)
-- A = 20, B = 18, C = 16, Miss = 0, for either arrow
-- Maximum score: **800** per archer
-- Add as many archers as needed for the group; each has a separate scorecard and a live leaderboard
-- Shoot in fixed archer order: each person scores Arrow 1 then Arrow 2; the app switches to the next archer. After everyone completes their two arrows, it advances to the next round, starting again with the first archer. Undo mistakes or select earlier rounds to correct scores
+## Competition formats
 
-## What's new in v1.3.1
+All formats are **one round with 20 targets**:
 
-- **New shoot starts empty:** pressing New shoot clears the entire current archer list, including names, photos and scores. A confirmation warns you to export or back up first. Saved backup files remain unaffected.
+| Format | Rules | Maximum |
+| --- | --- | ---: |
+| 1-arrow Pacific Bowmen | One arrow per archer per target; A=20, B=18, C=16, Miss=0 | 400 |
+| 2-arrow Pacific Bowmen | Two arrows per archer per target; both count equally | 800 |
+| 3-arrow ABA | Arrow 1: 20/18/16; Arrow 2: 14/12/10; Arrow 3: 8/6/4; stop at first hit | 400 |
 
-- Finishing the final archer's Arrow 2 automatically completes the round and advances to the next round, or ends Round 20 and displays shoot completion.
-- Stabilised scoring controls, arrow boxes and correction controls so changing labels and incomplete/complete status do not shift their positions.
-- Retains local storage and existing scores; no cloud service.
+Select Club or Casual Shoot, then the scoring format. The app advances through archers, then targets, automatically.
 
-## Previously in v1.2.0
-- **Round-robin shooting order:** Score Archer 1 Arrow 1 and Arrow 2, then Archer 2 Arrow 1 and Arrow 2, etc. When the last archer finishes, the app goes to Round 2 Archer 1. The order stays consistent regardless of scores.
-- **Mobile layout rebuilt:** Bigger scoring controls, 2×2 score buttons, legible labels, no page-wide sideways scrolling, compact roster and touch-friendly actions on smaller iPhones and Android phones.
-- **Score correction:** Editing a previously scored arrow doesn't jump to a different archer. Undo returns you to the correct archer and arrow even after automatic switching.
-- **Resume after reopening:** The app opens at the next unscored arrow instead of returning to an already-scored Arrow 1.
-- **Safe upgrade from v1.1:** Keeps the original local storage key and scorecard format. An existing roster, scores and photos on the same device/browser and URL will remain available after updating the site. Back up before changes as a precaution.
-- **Offline updates:** Updated the service worker cache version and network-first navigation so a newly deployed app can replace a previously installed one while retaining offline availability.
+## Changes in v1.5.0
 
-## Features introduced in v1.1.0
-- **Email results:** Select **Email results** in the top bar. On supported iPhone and Android browsers, the device's native **Share** sheet opens with the CSV **file attached**, and the user can select Mail/Gmail to send. The app does **not** send email automatically. The file contains a row for each of the 20 rounds of each archer; the share message includes a quick leaderboard.
-- **Fallback when file sharing is unavailable:** A CSV downloads and a `mailto:` email draft opens with the leaderboard. You must **attach the downloaded CSV manually** if you want the round-by-round results in the email. The app clearly advises of this. The email draft might not open on devices without a configured email app; the CSV will still be downloaded.
-- **Optional archer headshots:** Select an archer and tap **+ Photo**. You can **Take a photo** with your phone's camera or **Choose photo** from the gallery. Images are scaled down and stored only on this device. They appear in the archer list and on the scorer's screen, and can be replaced or removed. Photos are **excluded** from CSV/email exports.
-- **Backup/Restore:** JSON backups **include photos** alongside scores. Restore also accepts version 1.0 scorecards without photos. Please back up after a shoot, especially before clearing browser/app data.
-- **Club branding:** Colours and header use Pacific Bowmen's navy/gold theme, and the header loads the club's official logo at https://pacificbowmen.org.au/Sys/Branding/Logo. The logo is requested only on the first online load and cached for subsequent offline use where supported; a local target icon is shown if it's unavailable. No user scores or photos are transmitted to the club site.
+- New **1-arrow Pacific Bowmen** format.
+- The interface and CSV exports now use **target** terminology instead of incorrectly referring to 20 rounds.
+- **Protected target selection:** tap does not change the active target; press and hold a target or previous/next navigation button for approximately one second. Desktop users can right-click, or use Shift+Enter with keyboard focus. Normal scoring still advances automatically.
+- Completed shoots offer **View Scorecards**, with an individual read-only scorecard for each archer, showing all target/arrow results, running totals, arrow totals and grand total.
+- Individual scorecards are also accessible through History and can be **emailed/shared as an A4 PDF**, generated locally with no internet service. On compatible phones, the share sheet includes the PDF attachment; when unsupported, the PDF downloads for manual sharing.
+- Existing scores, JSON backups and older shoots remain compatible with the same storage keys. Older shoot files without a format are treated as 2-arrow Pacific Bowmen.
 
-## Deploy on HTTPS (required to install as an app)
+## Deployment to GitHub Pages
 
-1. Create an empty GitHub repository (e.g. `pacific-bowmen-score`).
-2. Upload the **contents** of this folder (`index.html`, `app.js`, `styles.css`, `sw.js`, manifest and `icons`) to the repository root (or copy them into a static website's root).
-3. In GitHub **Settings → Pages**, choose **Deploy from a branch → main / (root)** and Save. It will provide a `https://USERNAME.github.io/pacific-bowmen-score/` URL.
-4. Open that HTTPS link once while online on each device.
-   - **iPhone:** Open in **Safari**, Share → **Add to Home Screen**.
-   - **Android:** Open in **Chrome**, menu → **Install app** or **Add to Home screen**.
-5. After the first visit, scoring works offline, even with no reception on the range. Email sharing, of course, needs the selected email app and a connection to send.
+1. Unzip this package.
+2. Upload **all files and folders inside** this directory to the root of the `pacific-bowmen-score` GitHub repository, replacing existing versions. Make sure `index.html`, `app.js`, `pdf.js`, `styles.css`, `sw.js`, the `manifest.webmanifest` and `icons/` are all present.
+3. Commit the changes; GitHub Pages builds and deploys the site.
+4. Open the GitHub Pages link on your phone and close/reopen the installed home-screen app to pick up the updated service worker. If the old version remains, reconnect to the internet and reload a second time. **Do not clear website data**; local scores/history might be lost.
 
-Also works with Azure Static Web Apps, Cloudflare Pages, Netlify or any static HTTPS host. It does not require Azure SQL, API functions, or paid services.
+## Score preservation
 
-## Data handling / privacy / limitations
+Use **Save Shoot** to archive a shoot on this device. **History** allows reviewing old scores and restoring a previous shoot. **Backup** exports JSON containing complete scores and optional photos. **Restore** imports JSON. **Email results** shares a CSV of all archers. PDF scorecards are individual exports for completed shoots.
 
-- Scores and headshots are kept in browser/app **localStorage** for that origin. Headshots are downscaled before being stored, and can be removed. People should consent before having a photo taken or shared.
-- Data **does not automatically sync between phones**, and each device has its own roster and scorecard.
-- Photos are **included in a JSON backup**, so treat JSON files with appropriate care, especially if they include minors. The CSV/email export deliberately excludes photos.
-- Clearing website data, switching browsers, uninstalling, or running the app on a different website/domain can lose access to stored scores. Save a JSON backup to prevent data loss.
-- For a local desktop preview, open `index.html`, but rely on an HTTPS site for reliable persistent storage, offline use and mobile file sharing.
-- This app is an independent club scorekeeping utility and is not connected to Pacific Bowmen's membership database.
+**Important:** GitHub Pages only hosts the application code; it does not store any scores or photos. Keep copies of JSON backups in iPhone Files, iCloud Drive or another separate location.
 
-## Updating GitHub Pages
+## Technical details
 
-If the repository is already live on GitHub Pages, **do not create a new repository or change Pages settings**. Extract the ZIP and upload the changed `index.html`, `app.js`, `styles.css`, `sw.js`, and `README.md` into the repository root using **Add file → Upload files → Commit changes**. You can re-upload the complete folder contents; unchanged icon and manifest assets are safe to retain. The site address stays the same.
-
-Wait until GitHub's **Actions** page shows the Pages deployment succeeded, then reload the phone app. The previous service worker may require closing the installed app, reopening and reloading a second time to load the updated UI. A small `v1.3.1` label at the page bottom confirms the new version. Do not clear browser/site data just to force an upgrade, or stored scorecards may be lost.
-
-## Version history
-- v1.0.0 — original two-arrow scoring, leaderboard, CSV export, backup/restore, installable PWA.
-- v1.1.0 — optional photos, local photo storage, emailed CSV via share sheet, branded colours and official logo, privacy notes.
-
-- v1.3.1 — mobile layout rebuild, fixed shooting order across archers, stable roster/ranking, edit and undo handoff, cache update.
-
-
-## v1.4.1 — On-device Shoot History
-- New Shoot automatically snapshots the current active shoot before clearing all archers. If the archive cannot be written (for example due to local storage limits), New Shoot is cancelled.
-- Save Shoot stores/updates a historical snapshot; History views results without changing active scoring.
-- Files exports JSON using mobile share sheet (Save to Files on iPhone) or downloads when unavailable. Load from Files imports a JSON backup into history without overwriting active scores.
-- Restoring a historical shoot for editing requires confirmation and first archives the current shoot.
-- The archive exists only inside this particular browser/device; deleting website data may erase it. Export JSON files to Files/iCloud for durable backups. History is not synchronised between the two scorers.
-
-## v1.4.1 — Email subject
-- Email results now proposes a shoot-date subject such as `October Club shoot - 18/10/2026`.
-- The mailto fallback sets the exact subject. When sharing an attached CSV through the native iOS/Android share sheet, the title is passed to the receiving app, but some mail apps may ignore it; check the subject before sending.
-
-## v1.4.3 — Shoot types and email improvements
-- New Shoot now prompts for Club Shoot or Casual Shoot and archives the active shoot before clearing archers.
-- Dynamic heading and short date. Shoot type persists in backups and History (legacy shoots default to Club).
-- Participants footer shows only Save Shoot, History, Backup and Restore.
-- Email Results offers a mailto draft with guaranteed subject but manual CSV attachment, or native Share for automatic attachment with an unreliable subject on iOS mail clients.
-
-
-## v1.4.3 changes
-- Email Results now launches the file-sharing sheet directly with its CSV already attached, with no two-choice popup. iOS email apps may ignore the suggested subject.
-- On phones with an existing scorecard, the app initially scrolls to Now Scoring; adding the first archer does likewise. Scoring itself does not trigger automatic scrolling.
-- Gentle native scroll snapping near Now Scoring and reduced root overscroll, without locking access to other sections. iOS browser bounce remains partly browser-controlled.
-
-## v1.4.4 — Clear History
-
-- History includes a Clear History button, disabled when empty.
-- Confirmation identifies how many archived shoots will be deleted.
-- The active shoot and exported JSON backups are unaffected.
-
-## v1.4.5 — Archer entry scrolling
-
-- Adding the first archer no longer scrolls the page down to Now Scoring. You can enter the entire team without the page jumping.
-- Retains the existing mobile scroll snapping, overscroll controls, and returning-shoot scoring focus.
-
-
-## v1.4.6 — Archer add controls cleanup
-
-- Removed the duplicate + button in the Participants header; use the inline Add button.
-- Removed the redundant Add an archer button in the empty scoring panel.
-- No scoring, history, local storage, or scrolling behaviour changed.
-
-## v1.4.7 — Archer adding and scrolling correction
-- Keep the inline Add archer field visible for every participant.
-- Remove mobile page-level vertical snap that interfered with adding archers, while retaining overscroll boundary containment.
-- No local storage schema changes.
-
-## v1.4.8 — iPhone Home Screen correction
-- Standalone Home Screen mode no longer automatically jumps to the scorecard on launch.
-- Prevent stale scroll offset restoration in standalone mode and restore the top of the page at launch.
-- Keep ordinary Chrome navigation and scrolling behaviour from v1.4.7.
-- Update the offline service worker cache and opaque background styling.
-- Current scores and archived history remain in device storage, unchanged.
-
-## v1.4.9 — ABA three-arrow scoring
-
-New Shoot now first asks Club/Casual, then scoring format. Pacific Bowmen 2-arrow remains unchanged (20×2, maximum 800). ABA 3-arrow uses first-scoring-arrow rules: arrow 1 A/B/C = 20/18/16, arrow 2 = 14/12/10, arrow 3 = 8/6/4; misses zero. A first hit ends the target and later arrows are marked not shot; three misses also finish a target. Maximum 400. Each shoot and archived JSON retains its format. Older backups without format default to 2-arrow. Email CSV now includes shoot format and a third arrow column.
+This is a plain static PWA. `pdf.js` is a small, bundled, dependency-free offline PDF writer. `sw.js` caches the application code and icons. No external PDF service or API is used. iOS share targets (Apple Mail, Outlook, etc.) decide whether to apply the proposed message subject; the app only guarantees that the PDF file is made available for sharing.

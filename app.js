@@ -1,13 +1,13 @@
-/* Pacific Bowmen - Scorecard v1.4.9. Scores and photos stay on device. */
+/* Pacific Bowmen - Scorecard v1.5.0. Scores and photos stay on device. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'pacific-bowmen-two-arrow-v1';
   const SHOOT_TYPES = ['Club', 'Casual'];
   const HISTORY_KEY = 'pacific-bowmen-history-v1';
   const ROUNDS = 20;
-  const FORMATS = ['PB2', 'ABA3'];
-  const arrowLimit = (data = state) => data.format === 'ABA3' ? 3 : 2;
-  const maxScore = (data = state) => data.format === 'ABA3' ? 400 : 800;
+  const FORMATS = ['PB1', 'PB2', 'ABA3'];
+  const arrowLimit = (data = state) => data.format === 'ABA3' ? 3 : data.format === 'PB1' ? 1 : 2;
+  const maxScore = (data = state) => data.format === 'PB2' ? 800 : 400;
   const valueFor = (letter, index, data = state) => data.format === 'ABA3' ? ({A:[20,14,8], B:[18,12,6], C:[16,10,4], M:[0,0,0]})[letter][index] : SCORES[letter];
   const isFinished = (r, data = state) => data.format === 'ABA3' ? r.some(v => v !== null && v !== 'M') || r.every(v => v === 'M') : r.every(v => v !== null);
   const isSkipped = (r, index, data = state) => data.format === 'ABA3' && r.slice(0,index).some(v => v !== null && v !== 'M');
@@ -26,7 +26,7 @@
   let undo = null;
   let history = readHistory();
 
-  function blankRounds(format = state?.format || 'PB2') { return Array.from({length: ROUNDS}, () => Array(format === 'ABA3' ? 3 : 2).fill(null)); }
+  function blankRounds(format = state?.format || 'PB2') { return Array.from({length: ROUNDS}, () => Array(format === 'ABA3' ? 3 : format === 'PB1' ? 1 : 2).fill(null)); }
   function makeId() { return globalThis.crypto?.randomUUID?.() || `a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
   function newState() { return {version: 1, shootDate: new Date().toISOString(), shootType: 'Club', format: 'PB2', archers: [], selectedArcherId: null}; }
   function cleanState(value) {
@@ -39,9 +39,9 @@
       seen.add(id);
       const format = FORMATS.includes(value.format) ? value.format : 'PB2';
       const rounds = blankRounds(format);
-      if (!Array.isArray(archer.rounds) || archer.rounds.length !== ROUNDS) throw Error('Invalid rounds');
+      if (!Array.isArray(archer.rounds) || archer.rounds.length !== ROUNDS) throw Error('Invalid targets');
       for (let r = 0; r < ROUNDS; r++) {
-        if (!Array.isArray(archer.rounds[r]) || archer.rounds[r].length !== (format === 'ABA3' ? 3 : 2)) throw Error('Invalid arrow count');
+        if (!Array.isArray(archer.rounds[r]) || archer.rounds[r].length !== (format === 'ABA3' ? 3 : format === 'PB1' ? 1 : 2)) throw Error('Invalid arrow count');
         rounds[r] = archer.rounds[r].map(arrow => { if (arrow !== null && !Object.hasOwn(SCORES, arrow)) throw Error('Invalid score'); return arrow; });
         if (format === 'ABA3') {
           let hit = false;
@@ -140,10 +140,59 @@
     const entry = history.find(h => h.id === id); if (!entry) return;
     const data = entry.data;
     const rows = [...data.archers].sort((a,b)=>points(b,data)-points(a,data)).map(a => {
-      const perRound = a.rounds.map((r,i) => `<span>R${i+1}: ${r.map(v=>v === null?'—':v === 'M'?'Miss':v).join(' / ')} (${roundPoints(r,data)})</span>`).join('');
-      return `<details class="history-archer"><summary><strong>${esc(a.name)}</strong><span>${points(a,data)} / ${maxScore(data)} · ${completeRounds(a,data)}/20 rounds</span></summary><div class="history-rounds">${perRound}</div></details>`;
+      const perRound = a.rounds.map((r,i) => `<span>T${i+1}: ${r.map(v=>v === null?'—':v === 'M'?'Miss':v).join(' / ')} (${roundPoints(r,data)})</span>`).join('');
+      return `<details class="history-archer"><summary><strong>${esc(a.name)}</strong><span>${points(a,data)} / ${maxScore(data)} · ${completeRounds(a,data)}/20 targets</span></summary><div class="history-rounds">${perRound}</div><button type="button" class="outline-btn" data-action="view-scorecard" data-shoot="${esc(id)}" data-archer="${esc(a.id)}">View Scorecard</button></details>`;
     }).join('');
-    showModal(`${shootTitle(data)} · ${formattedDate(data.shootDate)}`, `<div class="history-view"><p>Read-only archived results · ${data.archers.length} archers</p>${rows}<div class="history-footer"><button class="outline-btn" type="button" data-action="export-history" data-id="${esc(id)}">Save to Files</button><button class="outline-btn" type="button" data-action="activate-history" data-id="${esc(id)}">Restore for editing</button><button class="outline-btn" type="button" data-action="history">Back to History</button></div></div>`);
+    showModal(`${shootTitle(data)} · ${formattedDate(data.shootDate)}`, `<div class="history-view"><p>Read-only archived results · ${data.archers.length} archers</p>${rows}<div class="history-footer"><button class="outline-btn" type="button" data-action="export-history" data-id="${esc(id)}">Save to Files</button><button class="outline-btn" type="button" data-action="view-scorecards" data-shoot="${esc(id)}">View Scorecards</button><button class="outline-btn" type="button" data-action="activate-history" data-id="${esc(id)}">Restore for editing</button><button class="outline-btn" type="button" data-action="history">Back to History</button></div></div>`);
+  }
+  function scorecardFormat(data) {
+    return data.format === 'PB1' ? '1-arrow Pacific Bowmen' : data.format === 'PB2' ? '2-arrow Pacific Bowmen' : '3-arrow ABA';
+  }
+  function viewScorecards(shootId = null) {
+    const data = shootId ? history.find(h => h.id === shootId)?.data : state;
+    if (!data || !data.archers.length) return toast('No scorecards available');
+    const rows = [...data.archers].sort((a,b)=>points(b,data)-points(a,data)).map(a=>`<button type="button" class="scorecard-picker" data-action="view-scorecard" data-archer="${esc(a.id)}" ${shootId ? `data-shoot="${esc(shootId)}"` : ''}><span>${esc(a.name)}</span><strong>${points(a,data)} / ${maxScore(data)}</strong></button>`).join('');
+    showModal('View Scorecards', `<p>${esc(shootTitle(data))} · ${esc(fullShootDate(data.shootDate))}</p><p>${esc(scorecardFormat(data))} · 20 targets</p><div class="scorecard-picker-list">${rows}</div>`);
+  }
+  function viewScorecard(archerId, shootId = null) {
+    const data = shootId ? history.find(h => h.id === shootId)?.data : state;
+    const archer = data?.archers.find(a=>a.id===archerId);
+    if(!archer) return toast('Scorecard not found');
+    const count=arrowLimit(data), running=Array(count).fill(0);
+    const rows=archer.rounds.map((round,i)=>{
+      const cols=round.map((v,j)=>{
+        const skip=isSkipped(round,j,data);
+        if(!skip && v!==null) running[j]+=valueFor(v,j,data);
+        const label=skip?'Not shot':v===null?'—':v==='M'?'Miss':v;
+        const pts=skip||v===null?'':` (${valueFor(v,j,data)})`;
+        return `<td><span class="scorecard-mark">${esc(label)}${pts}</span><span class="scorecard-running">${running[j]}</span></td>`;
+      }).join('');
+      return `<tr><th scope="row">T${String(i+1).padStart(2,'0')}</th>${cols}</tr>`;
+    }).join('');
+    const sums=Array(count).fill(0);
+    for(const r of archer.rounds) r.forEach((v,i)=>{if(!isSkipped(r,i,data) && v!==null) sums[i]+=valueFor(v,i,data);});
+    const photo=archer.photo?`<img class="scorecard-photo" src="${archer.photo}" alt="">`:'';
+    showModal('Individual Scorecard', `<div class="scorecard-detail"><div class="scorecard-summary">${photo}<div><strong>${esc(archer.name)}</strong><p>${esc(shootTitle(data))} · ${esc(fullShootDate(data.shootDate))}</p><p>${esc(scorecardFormat(data))}</p></div></div><div class="scorecard-total">${points(archer,data)} <small>/ ${maxScore(data)}</small></div><div class="scorecard-scroll"><table class="scorecard-table"><thead><tr><th>Target</th>${Array.from({length:count},(_,i)=>`<th>Arrow ${i+1}<small>Score / running</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><th>Total</th>${sums.map(s=>`<td>${s}</td>`).join('')}</tr></tfoot></table></div><div class="scorecard-total-footer">Grand total: ${points(archer,data)} / ${maxScore(data)}</div><button type="button" class="primary-btn" data-action="share-scorecard" data-archer="${esc(archer.id)}" ${shootId?`data-shoot="${esc(shootId)}"`:''}>Email / Share PDF</button><button type="button" class="outline-btn scorecard-back" data-action="view-scorecards" ${shootId?`data-shoot="${esc(shootId)}"`:''}>All archers</button></div>`);
+  }
+  function shareScorecardPDF(archerId, shootId = null) {
+    const data = shootId ? history.find(h => h.id === shootId)?.data : state;
+    const archer = data?.archers.find(a=>a.id===archerId);
+    if(!archer) return toast('Scorecard not found');
+    try {
+      const logo=PacificPDF.loadLogo();
+      const photo=PacificPDF.loadPhoto(archer.photo);
+      const pdf=PacificPDF.create({data,archer,logo,photo});
+      const date=new Date(data.shootDate).toLocaleDateString('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'});
+      const cleanName=archer.name.replace(/[^a-z0-9_-]+/gi,'-').slice(0,40);
+      const filename=`Pacific-Bowmen-${date}-${cleanName}-Scorecard.pdf`;
+      const file=new File([pdf],filename,{type:'application/pdf'});
+      if(navigator.share && navigator.canShare?.({files:[file]})){
+        try { navigator.share({title:`${shootTitle(data)} - ${archer.name}`,files:[file]}).catch(error=>{if(error?.name!=='AbortError') console.warn('PDF share failed',error);});return; }
+        catch(error){if(error?.name==='AbortError')return;console.warn('PDF share error',error);}
+      }
+      download(filename,pdf,'application/pdf');
+      toast('PDF downloaded — share from Files');
+    } catch(error){console.error('Unable to build PDF',error);toast('Unable to generate PDF');}
   }
   function activateHistory(id) {
     const entry = history.find(h => h.id === id); if (!entry) return;
@@ -242,7 +291,7 @@
   function advanceAfterPair(archerId, roundIndex) {
     const currentIndex = state.archers.findIndex(a => a.id === archerId);
     // Finish every archer in the current round before starting the next one.
-    // The last archer's second arrow ALWAYS ends the round.
+    // The last archer's final scoring arrow ends the target.
     for (let step = 1; step < state.archers.length; step++) {
       const next = state.archers[(currentIndex + step) % state.archers.length];
       if (!isFinished(next.rounds[roundIndex])) {
@@ -289,9 +338,9 @@
     }
     // Edits to previously scored arrows do not unexpectedly change archer.
     save(); render();
-    if (advance?.shootCompleted) toast('Shoot complete — all 20 rounds finished!');
-    else if (advance?.roundCompleted) toast(`Round complete! Starting Round ${activeRound + 1}`);
-    else if (advance?.archer) toast(`Next: ${advance.archer.name} · Round ${activeRound + 1}`);
+    if (advance?.shootCompleted) toast('Shoot complete — all 20 targets finished!');
+    else if (advance?.roundCompleted) toast(`Target complete! Starting Target ${activeRound + 1}`);
+    else if (advance?.archer) toast(`Next: ${advance.archer.name} · Target ${activeRound + 1}`);
   }
   function undoShot() {
     if (!undo) return;
@@ -316,7 +365,7 @@
     $('#archer-count').textContent = state.archers.length;
     $('#format-arrows').textContent = `${arrowLimit()} ARROWS`;
     $('#format-max').textContent = `${maxScore()} MAX`;
-    $('#page-footer').textContent = state.format === 'ABA3' ? 'Pacific Bowmen · ABA 3-arrow: first scoring arrow counts · v1.4.9' : 'Pacific Bowmen · A = 20 · B = 18 · C = 16 · Miss = 0 · Both arrows score equally · v1.4.9';
+    $('#page-footer').textContent = `Pacific Bowmen · ${state.format === 'ABA3' ? 'ABA 3-arrow · stop at first hit' : state.format === 'PB1' ? '1-arrow · A 20 · B 18 · C 16 · Miss 0' : '2-arrow · both arrows count equally'} · v1.5.0`;
     $('#app').classList.toggle('has-archers', state.archers.length > 0);
     const ranking = ranks();
     const position = new Map(ranking.map((archer, i) => [archer.id, i + 1]));
@@ -325,12 +374,12 @@
     $('#archer-list').innerHTML = leaderboard.map((archer, index) => {
       const total = points(archer), count = arrowCount(archer), active = state.selectedArcherId === archer.id;
       return `<button type="button" class="archer-card ${active ? 'selected' : ''}" data-action="select-archer" data-id="${esc(archer.id)}" aria-current="${active ? 'true' : 'false'}">
-        <div class="archer-rank">${position.get(archer.id)}</div>${avatar(archer, 'list-avatar')}<div><div class="archer-name">${esc(archer.name)}</div><div class="archer-progress">${count} arrows · ${completeRounds(archer)}/20 rounds</div><div class="archer-progress-mobile">${completeRounds(archer)}/20 rounds</div></div>
+        <div class="archer-rank">${position.get(archer.id)}</div>${avatar(archer, 'list-avatar')}<div><div class="archer-name">${esc(archer.name)}</div><div class="archer-progress">${count} arrows · ${completeRounds(archer)}/20 targets</div><div class="archer-progress-mobile">${completeRounds(archer)}/20 targets</div></div>
         <div class="archer-points-wrap"><div class="archer-points">${total}</div><div class="archer-points-sub">/ ${maxScore()} pts</div></div></button>`;
     }).join('') || `<div class="archer-empty">No archers yet.<br>Enter a name above to start scoring.</div>`;
     const archer = selected();
     if (!archer) {
-      $('#score-panel').innerHTML = `<div class="empty-shoot"><div class="empty-art" aria-hidden="true"></div><div class="panel-kicker">READY WHEN YOU ARE</div><h2>Let’s start scoring.</h2><p>Add your first archer to track 20 rounds, ${arrowLimit()} arrows per round. Every score saves automatically.</p></div>`;
+      $('#score-panel').innerHTML = `<div class="empty-shoot"><div class="empty-art" aria-hidden="true"></div><div class="panel-kicker">READY WHEN YOU ARE</div><h2>Let’s start scoring.</h2><p>Add your first archer to track 20 targets, ${arrowLimit()} arrows per target. Every score saves automatically.</p></div>`;
       return;
     }
     const total = points(archer), count = arrowCount(archer), finished = completeRounds(archer);
@@ -339,21 +388,21 @@
     $('#score-panel').innerHTML = `
       <div class="score-top"><div class="archer-heading">${avatar(archer)}<div><div class="selected-label">NOW SCORING · ARCHER ${state.archers.findIndex(a => a.id === archer.id) + 1} OF ${state.archers.length}</div><h2>${esc(archer.name)}</h2></div></div>
         <div class="minor-actions"><button class="tiny-action" data-action="photo-archer" type="button">${archer.photo ? 'Edit photo' : '+ Photo'}</button><button class="tiny-action" data-action="rename-archer" type="button">Rename</button><button class="tiny-action" data-action="delete-archer" type="button">Remove</button></div></div>
-      <div class="total-strip"><div class="total-stat"><div class="total-label">TOTAL SCORE</div><div class="total-number">${total}<small> / ${maxScore()}</small></div></div><div class="total-stat"><div class="total-label">ROUNDS DONE</div><div class="total-number">${finished}<small> / 20</small></div></div><div class="total-stat"><div class="total-label">ARROWS SHOT</div><div class="total-number">${count}<small>${state.format === 'ABA3' ? ' entered' : ` / ${ROUNDS * arrowLimit()}`}</small></div></div></div>
+      <div class="total-strip"><div class="total-stat"><div class="total-label">TOTAL SCORE</div><div class="total-number">${total}<small> / ${maxScore()}</small></div></div><div class="total-stat"><div class="total-label">TARGETS DONE</div><div class="total-number">${finished}<small> / 20</small></div></div><div class="total-stat"><div class="total-label">ARROWS SHOT</div><div class="total-number">${count}<small>${state.format === 'ABA3' ? ' entered' : ` / ${ROUNDS * arrowLimit()}`}</small></div></div></div>
       <div class="total-progress" aria-label="${count} arrows entered"><span style="width:${(completeRounds(archer) / ROUNDS) * 100}%"></span></div>
-      <div class="score-content"><div class="round-heading"><div><h3>Round ${activeRound+1} <span style="font-weight:500;color:#9daa9f">of 20</span></h3><p>${state.format === 'ABA3' ? 'Stop at first hit (maximum 3 arrows)' : 'Two arrows each, then the next archer'}</p></div>
-      <div class="round-nav"><button type="button" data-action="prev-round" aria-label="Previous round" ${activeRound === 0 ? 'disabled' : ''}>‹</button><button type="button" data-action="next-round" aria-label="Next round" ${activeRound === 19 ? 'disabled' : ''}>›</button></div></div>
-      <div class="arrow-row ${state.format === 'ABA3' ? 'three-arrows' : ''}">${currentRound.map((letter, index) => `<button type="button" data-action="select-arrow" data-index="${index}" class="arrow-box ${index === activeArrow ? 'active' : ''} ${isSkipped(currentRound,index) ? 'skipped' : ''}" aria-pressed="${index === activeArrow}" ${isSkipped(currentRound,index) ? 'disabled' : ''}><div><div class="arrow-title">ARROW ${index+1}</div><div class="arrow-value ${letter === null ? 'blank' : ''}">${isSkipped(currentRound,index) ? 'Not shot' : letter === null ? 'Not scored' : letter === 'M' ? 'Miss' : letter}</div></div><div class="arrow-score ${letter === null ? 'blank' : ''}">${isSkipped(currentRound,index) ? '—' : letter === null ? '—' : `${valueFor(letter,index)} pts`}</div></button>`).join('')}</div>
+      <div class="score-content"><div class="round-heading"><div><h3>Target ${activeRound+1} <span style="font-weight:500;color:#9daa9f">of 20</span></h3><p>${state.format === 'ABA3' ? 'Stop at first hit (maximum 3 arrows)' : state.format === 'PB1' ? 'One arrow each, then the next archer' : 'Two arrows each, then the next archer'}</p></div>
+      <div class="round-nav"><button type="button" data-action="prev-round" aria-label="Hold to select previous target" ${activeRound === 0 ? 'disabled' : ''} title="Hold for one second">‹</button><button type="button" data-action="next-round" aria-label="Hold to select next target" ${activeRound === 19 ? 'disabled' : ''} title="Hold for one second">›</button></div></div>
+      <div class="arrow-row ${state.format === 'ABA3' ? 'three-arrows' : state.format === 'PB1' ? 'one-arrow' : ''}">${currentRound.map((letter, index) => `<button type="button" data-action="select-arrow" data-index="${index}" class="arrow-box ${index === activeArrow ? 'active' : ''} ${isSkipped(currentRound,index) ? 'skipped' : ''}" aria-pressed="${index === activeArrow}" ${isSkipped(currentRound,index) ? 'disabled' : ''}><div><div class="arrow-title">ARROW ${index+1}</div><div class="arrow-value ${letter === null ? 'blank' : ''}">${isSkipped(currentRound,index) ? 'Not shot' : letter === null ? 'Not scored' : letter === 'M' ? 'Miss' : letter}</div></div><div class="arrow-score ${letter === null ? 'blank' : ''}">${isSkipped(currentRound,index) ? '—' : letter === null ? '—' : `${valueFor(letter,index)} pts`}</div></button>`).join('')}</div>
       <div class="score-instruction"><span>${esc(archer.name)} · <strong>ARROW ${activeArrow+1}</strong></span><span>Tap to score</span></div>
       <div class="score-choices"><button class="choice choice-a" type="button" data-action="score" data-letter="A"><span class="choice-letter">A</span><span class="choice-points">${valueFor('A',activeArrow)} pts</span></button><button class="choice choice-b" type="button" data-action="score" data-letter="B"><span class="choice-letter">B</span><span class="choice-points">${valueFor('B',activeArrow)} pts</span></button><button class="choice choice-c" type="button" data-action="score" data-letter="C"><span class="choice-letter">C</span><span class="choice-points">${valueFor('C',activeArrow)} pts</span></button><button class="choice choice-m" type="button" data-action="score" data-letter="M"><span class="choice-letter">Miss</span><span class="choice-points">0 pts</span></button></div>
-      <div class="score-actions"><span class="round-score">Round score: <strong>${roundSum} / ${state.format === 'ABA3' ? 20 : 40}</strong><span class="round-status">${!isFinished(currentRound) ? 'Incomplete' : 'Complete'}</span></span><div><button class="clear-btn" type="button" data-action="undo" ${undo ? '' : 'disabled'}>Undo</button><button class="clear-btn" type="button" data-action="clear-arrow" ${currentRound[activeArrow] === null ? 'disabled' : ''}>Clear arrow</button></div></div>
-      <div class="section-divider"></div><div class="rounds-section-head"><h3>All 20 rounds</h3><span>Select any round to edit</span></div>
+      <div class="score-actions"><span class="round-score">Target score: <strong>${roundSum} / ${state.format === 'PB2' ? 40 : 20}</strong><span class="round-status">${!isFinished(currentRound) ? 'Incomplete' : 'Complete'}</span></span><div><button class="clear-btn" type="button" data-action="undo" ${undo ? '' : 'disabled'}>Undo</button><button class="clear-btn" type="button" data-action="clear-arrow" ${currentRound[activeArrow] === null ? 'disabled' : ''}>Clear arrow</button></div></div>
+      <div class="section-divider"></div><div class="rounds-section-head"><h3>All 20 targets</h3><span>Hold a target to edit</span></div>
       <div class="rounds-grid">${archer.rounds.map((r, i) => {
         const shots = r.filter(v => v !== null).length;
-        return `<button type="button" data-action="select-round" data-index="${i}" class="round-cell ${i === activeRound ? 'is-selected' : ''} ${isFinished(r) ? 'is-complete' : shots > 0 ? 'is-partial' : ''}" aria-label="Round ${i+1}: ${shots} arrows entered, ${roundPoints(r)} points" aria-pressed="${i === activeRound}"><span class="round-id">R${String(i+1).padStart(2,'0')}</span><span class="round-total ${!shots ? 'empty' : ''}">${shots === 0 ? '—' : `${roundPoints(r)}${!isFinished(r) ? '*' : ''}`}</span></button>`;
+        return `<button type="button" data-action="select-round" data-index="${i}" class="round-cell ${i === activeRound ? 'is-selected' : ''} ${isFinished(r) ? 'is-complete' : shots > 0 ? 'is-partial' : ''}" aria-label="Target ${i+1}: ${shots} arrows entered, ${roundPoints(r)} points" aria-pressed="${i === activeRound}"><span class="round-id">T${String(i+1).padStart(2,'0')}</span><span class="round-total ${!shots ? 'empty' : ''}">${shots === 0 ? '—' : `${roundPoints(r)}${!isFinished(r) ? '*' : ''}`}</span></button>`;
       }).join('')}</div>
-      ${state.archers.length && state.archers.every(a => completeRounds(a) === ROUNDS) ? `<div class="completed-banner">✓ Shoot complete — all 20 rounds and all archers finished. Final results are ready to export.</div>` : ''}
-      ${completeRounds(archer) === ROUNDS ? `<div class="completed-banner">✓ ${esc(archer.name)} has completed all 20 rounds — final score ${total} / ${maxScore()}.</div>` : ''}</div>`;
+      ${state.archers.length && state.archers.every(a => completeRounds(a) === ROUNDS) ? `<div class="completed-banner">✓ Shoot complete — all 20 targets and all archers finished. Final results are ready to export. <button class="scorecard-launch" type="button" data-action="view-scorecards">View Scorecards</button></div>` : ''}
+      ${completeRounds(archer) === ROUNDS ? `<div class="completed-banner">✓ ${esc(archer.name)} has completed all 20 targets — final score ${total} / ${maxScore()}.</div>` : ''}</div>`;
   }
   function showModal(title, html) {
     $('#modal-title').textContent = title;
@@ -378,7 +427,7 @@
     return `${shootTitle()} - ${day}`;
   }
   function makeCSV() {
-    const header = ['Shoot Date', 'Shoot Type', 'Format', 'Archer', 'Round', 'Arrow 1', 'Arrow 2', 'Arrow 3', 'Round Points', 'Running Total', 'Final Total', 'Arrows Scored'];
+    const header = ['Shoot Date', 'Shoot Type', 'Format', 'Archer', 'Target', 'Arrow 1', 'Arrow 2', 'Arrow 3', 'Target Points', 'Running Total', 'Final Total', 'Arrows Scored'];
     const rows = [header];
     for (const archer of ranks()) {
       let running = 0;
@@ -395,8 +444,8 @@
     toast('CSV downloaded');
   }
   function emailSummary() {
-    return `${shootTitle()}\nDate: ${slugDate()}\n${state.format === 'ABA3' ? '20 targets · ABA 3-arrow first-hit system · A/B/C: 20/18/16, 14/12/10, 8/6/4 · Max 400' : '20 rounds × 2 arrows | A=20 B=18 C=16 Miss=0 | Max 800'}\n\n` +
-      ranks().map((a, i) => `${i+1}. ${a.name}: ${points(a)}/${maxScore()} (${completeRounds(a)}/20 rounds)`).join('\n') +
+    return `${shootTitle()}\nDate: ${slugDate()}\n${state.format === 'ABA3' ? '20 targets · ABA 3-arrow first-hit system · A/B/C: 20/18/16, 14/12/10, 8/6/4 · Max 400' : state.format === 'PB1' ? '20 targets × 1 arrow | A=20 B=18 C=16 Miss=0 | Max 400' : '20 targets × 2 arrows | A=20 B=18 C=16 Miss=0 | Max 800'}\n\n` +
+      ranks().map((a, i) => `${i+1}. ${a.name}: ${points(a)}/${maxScore()} (${completeRounds(a)}/20 targets)`).join('\n') +
       '\n\nScores recorded locally using Pacific Bowmen Scorecard.';
   }
   async function emailResults() {
@@ -474,7 +523,7 @@
   }
   function chooseShootType(type) {
     if (!SHOOT_TYPES.includes(type)) return;
-    showModal('Choose Scoring Format', `<div class="shoot-type-choices"><p>${esc(type)} Shoot — select the arrow format.</p><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="${esc(type)}" data-format="PB2"><strong>2-arrow Pacific Bowmen</strong><span>20 rounds · both arrows count · max 800</span></button><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="${esc(type)}" data-format="ABA3"><strong>3-arrow ABA</strong><span>20 targets · stop at first hit · max 400</span></button></div>`);
+    showModal('Choose Scoring Format', `<div class="shoot-type-choices"><p>${esc(type)} Shoot — select the arrow format.</p><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="${esc(type)}" data-format="PB1"><strong>1-arrow Pacific Bowmen</strong><span>20 targets · one arrow counts · max 400</span></button><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="${esc(type)}" data-format="PB2"><strong>2-arrow Pacific Bowmen</strong><span>20 targets · both arrows count · max 800</span></button><button class="shoot-type-btn" type="button" data-action="start-shoot" data-type="${esc(type)}" data-format="ABA3"><strong>3-arrow ABA</strong><span>20 targets · stop at first hit · max 400</span></button></div>`);
   }
   function startShoot(type, format) {
     if (!SHOOT_TYPES.includes(type) || !FORMATS.includes(format)) return;
@@ -497,14 +546,44 @@
     save(); render(); toast('Archer removed');
   }
   function openHelp() {
-    showModal('How scoring works', `<div class="help-steps"><p><strong>1.</strong> Add each archer using the name field. Tap their name to switch between scorecards.</p>
-    <p><strong>2.</strong> Each archer scores 20 rounds with 2 arrows per round (40 arrows). Tap A (20), B (18), C (16) or Miss (0). Both arrows count equally.</p>
-    <p><strong>3.</strong> In 2-arrow mode, after scoring both arrows, the app automatically selects the next archer in the order you added them. ABA 3-arrow mode stops at the first scoring hit (or after three misses). After the last archer finishes, the app moves to the next round and starts with Archer 1.</p>
-    <p><strong>4.</strong> Tap an archer, round or arrow to correct a score. Undo also works after switching archers. Editing an existing score will not automatically move to another archer. Empty arrows are not misses.</p>
-    <p><strong>5.</strong> Add an optional photo using the + Photo button. Images stay on the device; a backup includes them.</p>
-    <p><strong>6.</strong> Tap Save Shoot to archive the current shoot, History to review past shoots, Save to Files to share JSON, or Load from Files to import one. New Shoot lets you choose Club or Casual, then 2-arrow or ABA 3-arrow, and automatically archives the current shoot before clearing archers.</p><p><strong>7.</strong> Tap Email results to share the CSV attached through the phone Share menu (the mail app may ignore the suggested subject). Backup/Restore preserves scores and photos.</p>
-    <div class="modal-note"><strong>Install on a phone:</strong> Open the hosted HTTPS site in Safari on iPhone, then Share → Add to Home Screen. On Android, open it in Chrome, then choose Install app or Add to Home screen. After the first load, it works offline. Scores stay on this device unless you export a backup.</div></div>`);
+    showModal('How scoring works', `<div class="help-steps"><p><strong>1.</strong> Choose Club or Casual Shoot, then 1-arrow Pacific Bowmen, 2-arrow Pacific Bowmen or 3-arrow ABA.</p><p><strong>2.</strong> Each shoot is one round of 20 targets. Pacific Bowmen formats score A=20, B=18, C=16, Miss=0; both arrows count in 2-arrow mode. ABA scores diminish by arrow and stops after the first hit.</p><p><strong>3.</strong> Add your archers and score in order. The app moves to the next archer, then the next target automatically.</p><p><strong>4.</strong> To correct an earlier target, hold its target tile for one second (or right-click on desktop). Previous/next target buttons also require a hold. Tap an arrow to edit it and use Undo for corrections.</p><p><strong>5.</strong> At completion, View Scorecards shows a read-only card for each archer with a Share PDF option. Past cards are also available from History.</p><p><strong>6.</strong> Save Shoot and Backup keep scores and optional photos. Email results shares CSV. The Share PDF option uses the iPhone Share menu where supported.</p><div class="modal-note">Scores are stored only on this device unless exported. Keep backups to protect your records.</div></div>`);
   }
+  // Target selection is intentionally hard to trigger accidentally.
+  // A press must stay within 12px for 850ms. Desktop right-click is also supported.
+  let holdTimer = null, holdStart = null, holdFired = false;
+  const protectedTarget = el => el?.closest?.('[data-action="select-round"], [data-action="prev-round"], [data-action="next-round"]');
+  function activateProtectedTarget(button) {
+    if (!button || button.disabled) return;
+    if (button.dataset.action === 'select-round') moveToRound(Number(button.dataset.index));
+    else moveToRound(activeRound + (button.dataset.action === 'prev-round' ? -1 : 1));
+    holdFired = true;
+    render();
+    toast(`Target ${activeRound + 1} selected for correction`);
+  }
+  function cancelHold() { clearTimeout(holdTimer); holdTimer = null; holdStart = null; }
+  document.addEventListener('pointerdown', event => {
+    const button = protectedTarget(event.target);
+    cancelHold();
+    if (!button || button.disabled || event.button !== 0) return;
+    holdFired = false;
+    holdStart = {x:event.clientX,y:event.clientY, button};
+    holdTimer = setTimeout(() => { const b=holdStart?.button; cancelHold(); activateProtectedTarget(b); }, 850);
+  });
+  document.addEventListener('pointermove', event => {
+    if (holdStart && Math.hypot(event.clientX-holdStart.x,event.clientY-holdStart.y)>12) cancelHold();
+  });
+  for (const type of ['pointerup','pointercancel','scroll']) document.addEventListener(type, cancelHold, {passive:true});
+  document.addEventListener('contextmenu', event => {
+    const button = protectedTarget(event.target);
+    if (!button) return;
+    event.preventDefault(); cancelHold(); activateProtectedTarget(button);
+  });
+  document.addEventListener('keydown', event => {
+    const button = protectedTarget(event.target);
+    if (button && (event.key === 'Enter' || event.key === ' ') && event.shiftKey) {
+      event.preventDefault(); activateProtectedTarget(button);
+    }
+  });
   document.addEventListener('click', event => {
     if (event.target === $('#modal-backdrop')) { closeModal(); return; }
     const button = event.target.closest('[data-action]'); if (!button || button.disabled) return;
@@ -515,9 +594,9 @@
       case 'rename-archer': showModal('Rename archer', `<form id="modal-rename-form"><label class="sr-only" for="modal-name">Archer name</label><input id="modal-name" name="name" maxlength="50" value="${esc(selected().name)}" required><button type="submit" class="primary-btn">Save name</button></form>`); break;
       case 'close-modal': closeModal(); break;
       case 'select-arrow': activeArrow = Number(button.dataset.index); render(); break;
-      case 'select-round': moveToRound(Number(button.dataset.index)); render(); break;
-      case 'prev-round': moveToRound(activeRound - 1); render(); break;
-      case 'next-round': moveToRound(activeRound + 1); render(); break;
+      case 'select-round': toast('Hold for 1 second to select target'); break;
+      case 'prev-round': toast('Hold to change target'); break;
+      case 'next-round': toast('Hold to change target'); break;
       case 'score': recordScore(button.dataset.letter); break;
       case 'clear-arrow': clearArrow(); break;
       case 'undo': undoShot(); break;
@@ -538,6 +617,9 @@
       case 'clear-history': clearHistory(); break;
       case 'load-past-shoot': $('#history-file').click(); break;
       case 'view-history': viewHistory(button.dataset.id); break;
+      case 'view-scorecards': viewScorecards(button.dataset.shoot); break;
+      case 'view-scorecard': viewScorecard(button.dataset.archer, button.dataset.shoot); break;
+      case 'share-scorecard': shareScorecardPDF(button.dataset.archer, button.dataset.shoot); break;
       case 'export-history': { const h=history.find(h=>h.id===button.dataset.id); if(h) saveToFiles(h.data); break; }
       case 'activate-history': activateHistory(button.dataset.id); break;
       case 'restore': $('#restore-file').click(); break;

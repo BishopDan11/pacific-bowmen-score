@@ -1,5 +1,5 @@
-const CACHE = 'pacific-bowmen-score-v1.4.9';
-const FILES = ['./', './index.html', './styles.css?v=1.4.8', './app.js?v=1.4.8', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/icon-180.png', './icons/favicon.png'];
+const CACHE = 'pacific-bowmen-score-v1.5.0';
+const FILES = ['./', './index.html', './styles.css?v=1.5.0', './app.js?v=1.5.0', './pdf.js?v=1.5.0', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/icon-180.png', './icons/favicon.png', './icons/pdf-logo.jpg'];
 const CLUB_LOGO = 'https://pacificbowmen.org.au/Sys/Branding/Logo';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
